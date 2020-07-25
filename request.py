@@ -1,36 +1,34 @@
-from misc import read_yaml
-import datetime
-from ebaysdk.exception import ConnectionError
-from ebaysdk.finding import Connection
-
-conf = read_yaml('./conf.yaml')
-api_info = read_yaml(conf['api_config_path'])
+from bs4 import BeautifulSoup
+from bs4.element import Tag
+import requests
 
 
-def query(**kwargs):
-    try:
-        api = Connection(appid=api_info['appid'], config_file=None)
-        response = api.execute('findItemsAdvanced', kwargs)
-        assert(response.reply.ack == 'Success')
-        assert(type(response.reply.timestamp) == datetime.datetime)
-        assert(type(response.reply.searchResult.item) == list)
-        full_items = response.reply.searchResult.item
-        assert(type(response.dict()) == dict)
-        print(full_items)
-        return full_items
-    except ConnectionError as e:
-        print(e)
-        print(e.response.dict())
-        return e
+def query_ebay(query: str) -> list:
 
-# Not working for now...
-# res = query(keywords='Super Smash Brothers Melee')
-# print(res[0])
-# from ebaysdk.soa.finditem import Connection as FindItem
-# try:
-#     api = FindItem(consumer_id=api_info['appid'], config_file=conf['api_config_path'])
-#     print(res[0].itemId)
-#     api.find_items_by_ids([res[0].itemId])
-# except Exception as exc:
-#     print(exc)
-#     print(type(exc))
+    def format_search(query: str) -> str:
+        query_keywords = query.strip().split()
+        frmt_query = '+'.join(query_keywords)
+        ebay_str = f"https://www.ebay.com/sch/i.html?_from=R40&_nkw={frmt_query}&_sacat=0&LH_All=1&rt=nc"
+        return ebay_str
+
+    def get_item_ids(url: str) -> list:
+        response = requests.get(url)
+        page = response.text
+        soup = BeautifulSoup(page, 'lxml')
+        tags = soup.find_all(class_='s-item__link')
+        links = [tag['href'] for tag in tags]
+
+        def rip_item_id(link: Tag) -> int:
+            address = link.split('?')[0]
+            item_id = address[address.rfind('/') + 1:]
+            return int(item_id)
+
+        item_ids = [rip_item_id(link) for link in links]
+        return item_ids
+
+    url = format_search(query)
+    item_ids = get_item_ids(url)
+    return item_ids
+
+
+print(query_ebay('Super Smash Bros Melee'))
