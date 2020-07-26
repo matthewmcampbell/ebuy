@@ -3,7 +3,11 @@ from bs4.element import Tag
 import requests
 from html.parser import HTMLParser
 from itertools import chain
-from dataclasses import dataclass, astuple
+from dataclasses import dataclass
+from urllib.request import urlretrieve
+from urllib.error import HTTPError
+
+DOWNLOAD_PATH = '/home/matteo/Projects/Data/ebuy/imgs/'
 
 class ItemCountParser(HTMLParser):
     data_sentence = ''
@@ -76,10 +80,11 @@ class Item:
     item_id: int = 0
     price: float = 0.0
     cond: str = 'N/A'
-    bundle: bool = False
+    bundle: str = 'N/A'
     text: str = 'N/A'
+    seller_score: int = 0
     rating_count: int = 0
-    images: str = 'N/A'  # pointers to file locations maybe...
+    images: tuple = ()
     url: str = f"https://www.ebay.com/itm/{item_id}"
     soup:  BeautifulSoup = get_soup(url)
 
@@ -93,11 +98,17 @@ class Item:
         self.url = self.get_url()
         self.soup = self.get_soup()
 
-    def get_item_data(self, item_id: int) -> tuple:
+    def get_item_data(self, debug=False, **kwargs) -> tuple:
 
-        price = self.get_curr_price()
-        cond = self.get_condition()
-        return item_id, price, cond
+        self.price = self.get_curr_price(debug=debug)
+        self.cond = self.get_condition(debug=debug)
+        self.bundle = self.get_custom_bundle(debug=debug)
+        self.text = self.get_main_text(debug=debug)
+        self.seller_score = self.get_seller_feedback(debug=debug)
+        self.rating_count = self.get_product_rating_count(debug=debug)
+        self.images = self.get_images(debug=debug, **kwargs)
+        return (self.item_id, self.price, self.cond, self.bundle, self.text,
+                self.seller_score, self.rating_count, self.images)
 
     def get_curr_price(self, debug=False) -> float:
         dollar_html = str(self.soup.find_all(class_='notranslate')[0])
@@ -106,7 +117,7 @@ class Item:
         try:
             dollars = parser.data_sentence.split()[1]  # Pull the numbers out of string
         except Exception as e:
-            print('Could not get count of all listings for the query.') if debug else False
+            print(f'Could not get dollars for query {self.item_id}.') if debug else False
             print(e) if debug else False
             dollars = '0'
 
@@ -117,27 +128,97 @@ class Item:
         dollars = float(rm_commas(rm_dollar_sign(dollars)))
         return dollars
 
-    def get_condition(self,):
+    def get_condition(self, debug=False):
         cond_html = str(self.soup.find_all(class_='condText')[0])
         parser = ItemCountParser()
         parser.feed(cond_html)
         return parser.data_sentence
 
-    def get_custom_bundle(self,):
-        pass
+    def get_custom_bundle(self, debug=False):
+        bundle_html = str(self.soup.find_all(class_='prodDetailSec')[0])
+        parser = ItemCountParser()
+        parser.feed(bundle_html)
+        if 'No\n' in parser.data_sentence:
+            return 'No'
+        elif 'Yes\n' in parser.data_sentence:
+            return 'Yes'
+        else:
+            print(f'Could not get bundle info for query {self.item_id}.') if debug else False
+            return 'N/A'
 
-    def get_main_text(self,):
-        pass
+    def get_main_text(self, debug=False):
+        """Get the main seller text from the page.
+        This one is a bit trickier, need to pull a url
+        from the seller page that redirects to another.
 
-    def get_product_rating_count(self,):
-        pass
+        :return str
+        """
+        url_to_seller_text = self.soup.find(id='desc_ifr')['src']
+        seller_soup = get_soup(url_to_seller_text)
+        text_html = str(seller_soup.find(id='ds_div'))
+        parser = ItemCountParser()
+        parser.feed(text_html)
+        return parser.data_sentence.strip()
 
-    def get_images(self,):
-        pass
+    def get_seller_feedback(self, debug=False) -> int:
+        """Return the sellers feedback score. 0-100"""
+        url_to_seller_text = str(self.soup.find(id='si-fb'))
+        parser = ItemCountParser()
+        parser.feed(url_to_seller_text)
+        return int(parser.data_sentence.split('%')[0])
+
+    def get_product_rating_count(self, debug=False):
+        review_html = str(self.soup.find_all(class_='prodreview')[0])
+        parser = ItemCountParser()
+        parser.feed(review_html)
+        try:
+            review_count = parser.data_sentence.split()[0]  # Pull the numbers out of string
+        except Exception as e:
+            print(f'Could not get dollars for query {self.item_id}.') if debug else False
+            print(e) if debug else False
+            review_count = '0'
+
+        def rm_commas(s): return ''.join(s.split(','))
+        review_count = int(rm_commas(review_count))
+        return review_count
+
+    def get_images(self, size='thumb', debug=False):
+        size = size.lower()
+        if size.lower() not in ['thumb', 'full']:
+            print('image size not recognized; defaulting to thumbnail.')
+            size = 'thumb'
+
+        image_urls_html = self.soup.find_all(class_='tdThumb')
+
+        def rough_parser(thumb: str) -> str:
+            mark_1 = thumb.find("https://i.ebayimg.com/images/g/")
+            mark_2 = thumb[mark_1:].find('"')
+            return thumb[mark_1: mark_1 + mark_2]
+
+        def get_full_size_url(thumb_url: str) -> str:
+            return thumb_url.replace('s-l64', 's-l1600')
+
+        image_urls = list(map(lambda x: rough_parser(str(x)), image_urls_html))
+        image_urls = list(set(image_urls))
+        if size == 'full':
+            image_urls = list(map(get_full_size_url, image_urls))
+        image_location = []
+        for i, image in enumerate(image_urls):
+            try:
+                save_path = f'{DOWNLOAD_PATH}{self.item_id}{size}_{i}.jpg'
+                urlretrieve(image, save_path)
+                image_location.append(save_path)
+            except HTTPError as e:
+                print(e) if debug else False
+                print(f'Failed to get image for {self.item_id} img #{i}') if debug else False
+        return tuple(image_location)
 
 
-item_test = Item(133474223992)
-
+item_test = Item(133468960028)
+item_test.update_init()
+item_test.get_main_text()
+item_test.get_item_data()
+# item_test.get_images(size='full', debug=True)
 
 # get_item_data(133474223992)
 
