@@ -6,14 +6,18 @@ from itertools import chain
 from dataclasses import dataclass
 from urllib.request import urlretrieve
 from urllib.error import HTTPError
+import pandas as pd
+import numpy as np
 
 DOWNLOAD_PATH = '/home/matteo/Projects/Data/ebuy/imgs/'
+
 
 class ItemCountParser(HTMLParser):
     data_sentence = ''
 
     def handle_data(self, data):
         self.data_sentence += data
+
 
 def get_soup(url: str) -> BeautifulSoup:
     response = requests.get(url)
@@ -75,6 +79,18 @@ def get_listings(query: str, debug=True) -> list:
     return [listing for listing in chain(*listings)]
 
 
+def return_on_fail(default):
+    def outer_wrapper(func):
+        def new_func(*args, **kwargs):
+            try:
+                result = func(*args, **kwargs)
+                return result
+            except:
+                return default
+        return new_func
+    return outer_wrapper
+
+
 @dataclass
 class Item:
     item_id: int = 0
@@ -82,6 +98,7 @@ class Item:
     cond: str = 'N/A'
     bundle: str = 'N/A'
     text: str = 'N/A'
+    seller_percent: float = 0.0
     seller_score: int = 0
     rating_count: int = 0
     images: tuple = ()
@@ -104,12 +121,14 @@ class Item:
         self.cond = self.get_condition(debug=debug)
         self.bundle = self.get_custom_bundle(debug=debug)
         self.text = self.get_main_text(debug=debug)
-        self.seller_score = self.get_seller_feedback(debug=debug)
+        self.seller_percent = self.get_feedback_percent(debug=debug)
+        self.seller_score = self.get_feedback_score(debug=debug)
         self.rating_count = self.get_product_rating_count(debug=debug)
         self.images = self.get_images(debug=debug, **kwargs)
         return (self.item_id, self.price, self.cond, self.bundle, self.text,
-                self.seller_score, self.rating_count, self.images)
+                self.seller_percent, self.seller_score, self.rating_count, self.images)
 
+    @return_on_fail(0)
     def get_curr_price(self, debug=False) -> float:
         dollar_html = str(self.soup.find_all(class_='notranslate')[0])
         parser = ItemCountParser()
@@ -128,12 +147,14 @@ class Item:
         dollars = float(rm_commas(rm_dollar_sign(dollars)))
         return dollars
 
+    @return_on_fail('N/A')
     def get_condition(self, debug=False):
         cond_html = str(self.soup.find_all(class_='condText')[0])
         parser = ItemCountParser()
         parser.feed(cond_html)
         return parser.data_sentence
 
+    @return_on_fail('N/A')
     def get_custom_bundle(self, debug=False):
         bundle_html = str(self.soup.find_all(class_='prodDetailSec')[0])
         parser = ItemCountParser()
@@ -146,6 +167,7 @@ class Item:
             print(f'Could not get bundle info for query {self.item_id}.') if debug else False
             return 'N/A'
 
+    @return_on_fail('N/A')
     def get_main_text(self, debug=False):
         """Get the main seller text from the page.
         This one is a bit trickier, need to pull a url
@@ -160,13 +182,22 @@ class Item:
         parser.feed(text_html)
         return parser.data_sentence.strip()
 
-    def get_seller_feedback(self, debug=False) -> int:
-        """Return the sellers feedback score. 0-100"""
+    @return_on_fail(np.nan)
+    def get_feedback_percent(self, debug=False) -> float:
+        """Return the sellers feedback percentage. 0-100"""
         url_to_seller_text = str(self.soup.find(id='si-fb'))
         parser = ItemCountParser()
         parser.feed(url_to_seller_text)
-        return int(parser.data_sentence.split('%')[0])
+        return float(parser.data_sentence.split('%')[0])
 
+    @return_on_fail(np.nan)
+    def get_feedback_score(self, debug=False) -> int:
+        score_html = str(self.soup.find_all(class_='mbg-l')[0])
+        parser = ItemCountParser()
+        parser.feed(score_html)
+        return int(parser.data_sentence.strip().split('\n')[0][1:])
+
+    @return_on_fail('N/A')
     def get_product_rating_count(self, debug=False):
         review_html = str(self.soup.find_all(class_='prodreview')[0])
         parser = ItemCountParser()
@@ -182,6 +213,7 @@ class Item:
         review_count = int(rm_commas(review_count))
         return review_count
 
+    @return_on_fail('N/A')
     def get_images(self, size='thumb', debug=False):
         size = size.lower()
         if size.lower() not in ['thumb', 'full']:
@@ -213,18 +245,46 @@ class Item:
                 print(f'Failed to get image for {self.item_id} img #{i}') if debug else False
         return tuple(image_location)
 
+    @return_on_fail(pd.DataFrame({}))
+    def get_bidding_hist(self,):
+        url = f"https://www.ebay.com/bfl/viewbids/{self.item_id}?item={self.item_id}&rt=nc"
+        soup = get_soup(url)
+        records_html = soup.find_all(class_='ui-component-table_tr_detailinfo')
 
-item_test = Item(133468960028)
+        def record_parser(record):
+            parser = ItemCountParser()
+            parser.feed(record)
+            bid_data = parser.data_sentence
+            bid_user = bid_data[:5]  # Will have the form of a***e.
+            feedback_chunk, amt_time_chunk = bid_data.split('$')
+            user_score = feedback_chunk.split('(')[-1].split()[-1][:-1]  # NASTY LINE
+            dollar_dec_loc = amt_time_chunk.find('.')
+            bid_amt = amt_time_chunk[:dollar_dec_loc + 3]
+            if bid_user == 'StarT':
+                return bid_user, np.nan, bid_amt, pd.NaT
+
+            dt = amt_time_chunk[dollar_dec_loc + 3:]
+
+            def clean_datetime(dt):
+                date, time = dt.split('at')
+                date, time = date.strip(), time.strip()
+                # if len(time) < 14:
+                #     time = '0' + time  # Zero-padding once to get formatting consistent for pd.to_datetime()
+                time = time[:-3]  # Removing timezone info
+                return date, time
+
+            date, time = clean_datetime(dt)
+            return bid_user, user_score, bid_amt, f'{date} {time}'
+
+        records = list(map(lambda record: record_parser(str(record)), records_html))
+        col_names = ['User', 'Score', 'Bid', 'Datetime']
+        df_records = pd.DataFrame(records, columns=col_names)
+        return df_records
+
+
+item_test = Item(184372242927)
 item_test.update_init()
-item_test.get_main_text()
 item_test.get_item_data()
+# item_test.get_main_text()
+# item_test.get_item_data()
 # item_test.get_images(size='full', debug=True)
-
-# get_item_data(133474223992)
-
-def get_bidding_hist(item_id):
-    url = f"https://www.ebay.com/bfl/viewbids/{item_id}?item={item_id}&rt=nc"
-    soup = get_soup(url)
-
-
-# x = get_listings('Super Smash Bros Melee')  # Costs about 10 calls atm.
