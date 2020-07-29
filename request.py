@@ -8,8 +8,12 @@ from urllib.request import urlretrieve
 from urllib.error import HTTPError
 import pandas as pd
 import numpy as np
+from misc import read_yaml, return_on_fail
+import operator
 
-DOWNLOAD_PATH = '/home/matteo/Projects/Data/ebuy/imgs/'
+
+config = read_yaml('conf.yaml')
+DOWNLOAD_PATH = config['download_path']
 
 
 class ItemCountParser(HTMLParser):
@@ -26,12 +30,50 @@ def get_soup(url: str) -> BeautifulSoup:
     return soup
 
 
-def get_listings(query: str, debug=True) -> list:
+class ListingOptions:
+
+    def __init__(self):
+        self.listing_types = 'all'
+        self.show_only = ''
+        self.listing_types_out = 'LH_All=1'
+        self.show_only_out = ''
+
+    listing_types = property(operator.attrgetter('_listing_types'))
+
+    @listing_types.setter
+    def listing_types(self, d):
+        valid = ['all', 'offers', 'auction', 'buy_now']
+        if d.lower() not in valid:
+            print('Not a valid entry for this field.')
+            self._listing_types = 'all'
+
+        convert = dict(zip(valid, ['LH_All=1', 'LH_BO=1', 'LH_Auction=1', 'LH_BIN=1']))
+        self._listing_types = d
+        self.listing_types_out = convert[d]
+
+    show_only = property(operator.attrgetter('_show_only'))
+
+    @show_only.setter
+    def show_only(self, d):
+        valid = ['', 'sold']
+        if d.lower() not in valid:
+            print('Not a valid entry for this field.')
+            self._show_only = ''
+
+        convert = dict(zip(valid, ['', 'LH_Sold=1&LH_Complete=1']))
+        self._show_only = d
+        self.show_only_out = convert[d]
+
+    def get(self):
+        return '&'.join((self.listing_types_out, self.show_only_out))
+
+
+def get_listings(query: str, options=ListingOptions(), debug=True) -> list:
 
     def format_search(query: str, pgn=1) -> str:
         query_keywords = query.strip().split()
         frmt_query = '+'.join(query_keywords)
-        ebay_str = f"https://www.ebay.com/sch/i.html?_from=R40&_nkw={frmt_query}&_sacat=0&LH_All=1&rt=nc"
+        ebay_str = f"https://www.ebay.com/sch/i.html?_from=R40&_nkw={frmt_query}&_sacat=0&{options.get()}&rt=nc"
         if pgn > 1:
             ebay_str += f'&_pgn={pgn}'
         return ebay_str
@@ -79,18 +121,6 @@ def get_listings(query: str, debug=True) -> list:
     return [listing for listing in chain(*listings)]
 
 
-def return_on_fail(default):
-    def outer_wrapper(func):
-        def new_func(*args, **kwargs):
-            try:
-                result = func(*args, **kwargs)
-                return result
-            except:
-                return default
-        return new_func
-    return outer_wrapper
-
-
 @dataclass
 class Item:
     item_id: int = 0
@@ -105,14 +135,15 @@ class Item:
     url: str = f"https://www.ebay.com/itm/{item_id}"
     soup:  BeautifulSoup = get_soup(url)
 
-    def get_url(self) -> str:
-        return f"https://www.ebay.com/itm/{self.item_id}"
+    def get_url(self, bid_done=False) -> str:
+        orig = 'nordt=true&orig_cvip=true' if bid_done else ''
+        return f"https://www.ebay.com/itm/{self.item_id}?{orig}"
 
     def get_soup(self) -> BeautifulSoup:
         return get_soup(self.url)
 
-    def update_init(self):
-        self.url = self.get_url()
+    def update_init(self, **kwargs):
+        self.url = self.get_url(**kwargs)
         self.soup = self.get_soup()
 
     def get_item_data(self, debug=False, **kwargs) -> tuple:
@@ -282,9 +313,17 @@ class Item:
         return df_records
 
 
-item_test = Item(184372242927)
-item_test.update_init()
-item_test.get_item_data()
+# x = get_listings('Super Smash Bros Melee')
+
+options = ListingOptions()
+options.listing_types = 'auction'
+options.show_only = 'sold'
+print(options.get())
+
+# y = get_listings('Super Smash Bros Melee', options)
+# item_test = Item(184372242927)
+# item_test.update_init()
+# item_test.get_item_data()
 # item_test.get_main_text()
 # item_test.get_item_data()
 # item_test.get_images(size='full', debug=True)

@@ -1,2 +1,3 @@
 ---
  api_config_path: '/home/matteo/Projects/Keys/ebuy/ebuy.yaml'
+ download_path: '/home/matteo/Projects/Data/ebuy/imgs/'
