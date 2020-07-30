@@ -1,3 +1,6 @@
 ---
  api_config_path: '/home/matteo/Projects/Keys/ebuy/ebuy.yaml'
  download_path: '/home/matteo/Projects/Data/ebuy/imgs/'
+ dbname: 'ebuy_db'
+ dbuser: 'postgres'
+ secrets: './secrets.yaml'
