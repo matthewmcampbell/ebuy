@@ -1,4 +1,5 @@
 import yaml
+from functools import wraps
 
 
 def read_yaml(path: str) -> dict:
@@ -13,6 +14,7 @@ def read_yaml(path: str) -> dict:
 
 def return_on_fail(default, error=Exception):
     def outer_wrapper(func):
+        @wraps(func)
         def new_func(*args, **kwargs):
             try:
                 result = func(*args, **kwargs)

@@ -132,6 +132,7 @@ class Item:
     seller_score: int = 0
     rating_count: int = 0
     images: tuple = ()
+    bids: pd.DataFrame = pd.DataFrame({})
     url: str = f"https://www.ebay.com/itm/{item_id}"
     soup:  BeautifulSoup = get_soup(url)
 
@@ -147,7 +148,6 @@ class Item:
         self.soup = self.get_soup()
 
     def get_item_data(self, debug=False, **kwargs) -> tuple:
-
         self.price = self.get_curr_price(debug=debug)
         self.cond = self.get_condition(debug=debug)
         self.bundle = self.get_custom_bundle(debug=debug)
@@ -157,7 +157,7 @@ class Item:
         self.rating_count = self.get_product_rating_count(debug=debug)
         self.images = self.get_images(debug=debug, **kwargs)
         return (self.item_id, self.price, self.cond, self.bundle, self.text,
-                self.seller_percent, self.seller_score, self.rating_count, self.images)
+                self.seller_percent, self.seller_score, self.rating_count)
 
     @return_on_fail(0)
     def get_curr_price(self, debug=False) -> float:
@@ -277,7 +277,7 @@ class Item:
         return tuple(image_location)
 
     @return_on_fail(pd.DataFrame({}))
-    def get_bidding_hist(self,):
+    def get_bidding_hist(self,) -> pd.DataFrame:
         url = f"https://www.ebay.com/bfl/viewbids/{self.item_id}?item={self.item_id}&rt=nc"
         soup = get_soup(url)
         records_html = soup.find_all(class_='ui-component-table_tr_detailinfo')
@@ -291,7 +291,7 @@ class Item:
             user_score = feedback_chunk.split('(')[-1].split()[-1][:-1]  # NASTY LINE
             dollar_dec_loc = amt_time_chunk.find('.')
             bid_amt = amt_time_chunk[:dollar_dec_loc + 3]
-            if bid_user == 'StarT':
+            if bid_user.lower() == 'start':
                 return bid_user, np.nan, bid_amt, pd.NaT
 
             dt = amt_time_chunk[dollar_dec_loc + 3:]
@@ -308,22 +308,52 @@ class Item:
             return bid_user, user_score, bid_amt, f'{date} {time}'
 
         records = list(map(lambda record: record_parser(str(record)), records_html))
-        col_names = ['User', 'Score', 'Bid', 'Datetime']
+        col_names = ['user', 'score', 'bid', 'datetime']
         df_records = pd.DataFrame(records, columns=col_names)
-        return df_records
+        df_records['id'] = self.item_id
+        df_return = df_records[['id', 'user', 'score', 'bid', 'datetime']]  # Reordering columns for easy sql later.
+        self.bids = df_return
+        return df_return
 
+
+def listings_to_items(listings: list) -> list:
+    return [Item(listing) for listing in listings]
+
+
+def get_data_on_listings(listings: list, bid_done=False) -> pd.DataFrame:
+    data = []
+    for listing in listings:
+        listing.update_init(bid_done=bid_done)
+        data.append(listing.get_item_data())
+        listing.get_bidding_hist()
+    columns = ['id', 'price', 'cond', 'bundle', 'text', 'seller_percent', 'seller_score', 'rating_count']
+    return pd.DataFrame(data, columns=columns)
+
+
+def get_image_addresses(listings: list) -> pd.DataFrame:
+    data = []
+    for listing in listings:
+        for image_url in listing.images:
+            data.append((listing.item_id, image_url))
+    columns = ['id', 'image_url']
+    return pd.DataFrame(data, columns=columns)
+
+
+def get_bid_histories(listings: list) -> pd.DataFrame:
+    df = pd.concat([listing.bids for listing in listings])
+    return df
 
 # x = get_listings('Super Smash Bros Melee')
 
 options = ListingOptions()
 options.listing_types = 'auction'
 options.show_only = 'sold'
-print(options.get())
 
 # y = get_listings('Super Smash Bros Melee', options)
-# item_test = Item(184372242927)
-# item_test.update_init()
-# item_test.get_item_data()
-# item_test.get_main_text()
-# item_test.get_item_data()
-# item_test.get_images(size='full', debug=True)
+# y = [y[0]]
+y = [303634334633]
+y = listings_to_items(y)
+res1 = get_data_on_listings(y, bid_done=True)
+res2 = get_image_addresses(y)
+res3 = get_bid_histories(y)
+
