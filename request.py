@@ -292,7 +292,7 @@ class Item:
             dollar_dec_loc = amt_time_chunk.find('.')
             bid_amt = amt_time_chunk[:dollar_dec_loc + 3]
             if bid_user.lower() == 'start':
-                return bid_user, 0, bid_amt, 'NULL'
+                return bid_user, 0, bid_amt, None
 
             dt = amt_time_chunk[dollar_dec_loc + 3:]
 
@@ -339,13 +339,13 @@ def get_image_addresses(listings: list) -> pd.DataFrame:
     columns = ['id', 'url']
     df = pd.DataFrame(data, columns=columns).reset_index(drop=True)
     df.index.rename('idx', inplace=True)
-    return df.reset_index()
+    return df
 
 
 def get_bid_histories(listings: list) -> pd.DataFrame:
     df = pd.concat([listing.bids for listing in listings]).reset_index(drop=True)
     df.index.rename('idx', inplace=True)
-    return df.reset_index()
+    return df
 
 # x = get_listings('Super Smash Bros Melee')
 

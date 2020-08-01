@@ -58,7 +58,7 @@ def mk_main_tbl(cur=None, table='main'):
 @get_cursor
 def mk_img_tbl(cur=None, table='imgs', foreign_table='main'):
     cur.execute("""CREATE TABLE IF NOT EXISTS {} (
-        idx INT PRIMARY KEY,
+        idx SERIAL PRIMARY KEY,
         id BIGINT NOT NULL, 
         url VARCHAR(100) NOT NULL,
         CONSTRAINT fk_id
@@ -71,24 +71,32 @@ def mk_img_tbl(cur=None, table='imgs', foreign_table='main'):
 @get_cursor
 def mk_bid_tbl(cur=None, table='bids', foreign_table='main'):
     cur.execute("""CREATE TABLE IF NOT EXISTS {} (
-        idx INT PRIMARY KEY,
+        idx SERIAL PRIMARY KEY,
         id BIGINT NOT NULL,
         user_id CHAR(5) NOT NULL,
         score INT NOT NULL,
         bid NUMERIC(6,2) NOT NULL,
-        datetime timestamp,
+        datetime timestamp NULL,
         CONSTRAINT fk_id
             FOREIGN KEY(id)
                 REFERENCES {}(id)
         );
         """.format(table, foreign_table))
 
+
 @get_cursor
 def _drop_tbls(cur=None, tables=('imgs', 'bids', 'main')):
     '''DEV tool only. Drop tables.'''
     for table in tables:
-        cur.execute(f"DROP TABLE {table};")
+        cur.execute(f"DROP TABLE IF EXISTS {table};")
 
+
+def catch_null(values: str) -> str:
+    if "'null'" in values:
+        values = values.replace("'null'", "null", 5)
+    if '"null"' in values:
+        values = values.replace('"null"', 'null', 5)
+    return values
 
 
 @get_cursor
@@ -100,7 +108,6 @@ def write(df, table, cur=None,):
 
         # create VALUES('%s', '%s",...) one '%s' per column
         values = "VALUES({})".format(",".join(["%s" for _ in df_columns]))
-
         # create INSERT INTO table (columns) VALUES('%s',...)
         insert_stmt = "INSERT INTO {} ({}) {}".format(table, columns, values)
         print(df.values)

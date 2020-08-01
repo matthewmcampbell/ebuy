@@ -1,9 +1,9 @@
 ---
  api_config_path: '/home/matteo/Projects/Keys/ebuy/ebuy.yaml'
- download_path: '/home/matteo/Projects/Data/ebuy/imgs/'
+ download_path: '/home/realcute/Projects/Data/ebuy/imgs/'
  dbname: 'test_db'
  user: 'postgres'
  host: 'localhost'
  # NOT STANDARD PORT, typically you'll want 5432
- port: '5433'
+ port: '5432'
  secrets: './secrets.yaml'
