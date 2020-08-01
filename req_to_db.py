@@ -2,7 +2,7 @@ import psycopg2
 import psycopg2.extras
 from misc import read_yaml
 from functools import wraps
-
+from request import listings_to_items, get_bid_histories, get_image_addresses, get_data_on_listings
 
 config = read_yaml('conf.yaml')
 secrets = read_yaml(config['secrets'])
@@ -41,22 +41,58 @@ def simple_write(cur=None):
 
 
 @get_cursor
-def mk_main_tbl(cur=None, table='ebuy_smash'):
+def mk_main_tbl(cur=None, table='main'):
     cur.execute("""CREATE TABLE IF NOT EXISTS {} (
-        id INT PRIMARY KEY,
-        price NUMERIC(6,2) NOT NULL,
-        cond CHAR(25) NOT NULL,
-        bundle CHAR(5) NOT NULL,
-        text CHAR(1000) NOT NULL,
-        seller_percent NUMERIC(4,1) NOT NULL,
-        seller_score INT NOT NULL,
-        rating_count INT NOT NULL
+        id BIGINT PRIMARY KEY,
+        price NUMERIC(6,2),
+        cond VARCHAR(25) NOT NULL,
+        bundle VARCHAR(5) NOT NULL,
+        text TEXT,
+        seller_percent NUMERIC(4,1),
+        seller_score INT,
+        rating_count INT
         );
         """.format(table))
 
 
 @get_cursor
-def write_to_db(df, cur=None, table='ebuy_smash'):
+def mk_img_tbl(cur=None, table='imgs', foreign_table='main'):
+    cur.execute("""CREATE TABLE IF NOT EXISTS {} (
+        idx INT PRIMARY KEY,
+        id BIGINT NOT NULL, 
+        url VARCHAR(100) NOT NULL,
+        CONSTRAINT fk_id
+            FOREIGN KEY(id)
+                REFERENCES {}(id)
+        );
+        """.format(table, foreign_table))
+
+
+@get_cursor
+def mk_bid_tbl(cur=None, table='bids', foreign_table='main'):
+    cur.execute("""CREATE TABLE IF NOT EXISTS {} (
+        idx INT PRIMARY KEY,
+        id BIGINT NOT NULL,
+        user_id CHAR(5) NOT NULL,
+        score INT NOT NULL,
+        bid NUMERIC(6,2) NOT NULL,
+        datetime timestamp,
+        CONSTRAINT fk_id
+            FOREIGN KEY(id)
+                REFERENCES {}(id)
+        );
+        """.format(table, foreign_table))
+
+@get_cursor
+def _drop_tbls(cur=None, tables=('imgs', 'bids', 'main')):
+    '''DEV tool only. Drop tables.'''
+    for table in tables:
+        cur.execute(f"DROP TABLE {table};")
+
+
+
+@get_cursor
+def write(df, table, cur=None,):
     if len(df) > 0:
         df_columns = list(df)
         # create (col1,col2,...)
@@ -67,10 +103,20 @@ def write_to_db(df, cur=None, table='ebuy_smash'):
 
         # create INSERT INTO table (columns) VALUES('%s',...)
         insert_stmt = "INSERT INTO {} ({}) {}".format(table, columns, values)
-
+        print(df.values)
         psycopg2.extras.execute_batch(cur, insert_stmt, df.values)
 
 
+_drop_tbls()
 mk_main_tbl()
-simple_write()
-select_all()
+mk_img_tbl()
+mk_bid_tbl()
+y = [303634334633]
+y = listings_to_items(y)
+res1 = get_data_on_listings(y, bid_done=True)
+res2 = get_image_addresses(y)
+res3 = get_bid_histories(y)
+
+write(res1, 'main')
+write(res2, 'imgs')
+write(res3, 'bids')

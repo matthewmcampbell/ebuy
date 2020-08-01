@@ -159,7 +159,7 @@ class Item:
         return (self.item_id, self.price, self.cond, self.bundle, self.text,
                 self.seller_percent, self.seller_score, self.rating_count)
 
-    @return_on_fail(0)
+    @return_on_fail(np.nan)
     def get_curr_price(self, debug=False) -> float:
         dollar_html = str(self.soup.find_all(class_='notranslate')[0])
         parser = ItemCountParser()
@@ -228,8 +228,8 @@ class Item:
         parser.feed(score_html)
         return int(parser.data_sentence.strip().split('\n')[0][1:])
 
-    @return_on_fail('N/A')
-    def get_product_rating_count(self, debug=False):
+    @return_on_fail(np.nan)
+    def get_product_rating_count(self, debug=False) -> int:
         review_html = str(self.soup.find_all(class_='prodreview')[0])
         parser = ItemCountParser()
         parser.feed(review_html)
@@ -244,8 +244,8 @@ class Item:
         review_count = int(rm_commas(review_count))
         return review_count
 
-    @return_on_fail('N/A')
-    def get_images(self, size='thumb', debug=False):
+    @return_on_fail(tuple('N/A'))
+    def get_images(self, size='thumb', debug=False) -> tuple:
         size = size.lower()
         if size.lower() not in ['thumb', 'full']:
             print('image size not recognized; defaulting to thumbnail.')
@@ -292,7 +292,7 @@ class Item:
             dollar_dec_loc = amt_time_chunk.find('.')
             bid_amt = amt_time_chunk[:dollar_dec_loc + 3]
             if bid_user.lower() == 'start':
-                return bid_user, np.nan, bid_amt, pd.NaT
+                return bid_user, 0, bid_amt, 'NULL'
 
             dt = amt_time_chunk[dollar_dec_loc + 3:]
 
@@ -308,10 +308,10 @@ class Item:
             return bid_user, user_score, bid_amt, f'{date} {time}'
 
         records = list(map(lambda record: record_parser(str(record)), records_html))
-        col_names = ['user', 'score', 'bid', 'datetime']
+        col_names = ['user_id', 'score', 'bid', 'datetime']
         df_records = pd.DataFrame(records, columns=col_names)
         df_records['id'] = self.item_id
-        df_return = df_records[['id', 'user', 'score', 'bid', 'datetime']]  # Reordering columns for easy sql later.
+        df_return = df_records[['id', 'user_id', 'score', 'bid', 'datetime']]  # Reordering columns for easy sql later.
         self.bids = df_return
         return df_return
 
@@ -327,7 +327,8 @@ def get_data_on_listings(listings: list, bid_done=False) -> pd.DataFrame:
         data.append(listing.get_item_data())
         listing.get_bidding_hist()
     columns = ['id', 'price', 'cond', 'bundle', 'text', 'seller_percent', 'seller_score', 'rating_count']
-    return pd.DataFrame(data, columns=columns)
+    df = pd.DataFrame(data, columns=columns)
+    return df
 
 
 def get_image_addresses(listings: list) -> pd.DataFrame:
@@ -335,13 +336,16 @@ def get_image_addresses(listings: list) -> pd.DataFrame:
     for listing in listings:
         for image_url in listing.images:
             data.append((listing.item_id, image_url))
-    columns = ['id', 'image_url']
-    return pd.DataFrame(data, columns=columns)
+    columns = ['id', 'url']
+    df = pd.DataFrame(data, columns=columns).reset_index(drop=True)
+    df.index.rename('idx', inplace=True)
+    return df.reset_index()
 
 
 def get_bid_histories(listings: list) -> pd.DataFrame:
-    df = pd.concat([listing.bids for listing in listings])
-    return df
+    df = pd.concat([listing.bids for listing in listings]).reset_index(drop=True)
+    df.index.rename('idx', inplace=True)
+    return df.reset_index()
 
 # x = get_listings('Super Smash Bros Melee')
 
