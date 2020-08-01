@@ -91,14 +91,6 @@ def _drop_tbls(cur=None, tables=('imgs', 'bids', 'main')):
         cur.execute(f"DROP TABLE IF EXISTS {table};")
 
 
-def catch_null(values: str) -> str:
-    if "'null'" in values:
-        values = values.replace("'null'", "null", 5)
-    if '"null"' in values:
-        values = values.replace('"null"', 'null', 5)
-    return values
-
-
 @get_cursor
 def write(df, table, cur=None,):
     if len(df) > 0:
@@ -114,12 +106,25 @@ def write(df, table, cur=None,):
         psycopg2.extras.execute_batch(cur, insert_stmt, df.values)
 
 
+@get_cursor
+def remove_existing_items(listings, table, cur=None, ):
+    if len(listings) > 0:
+        int_listings = list(map(str, listings))
+        check_values = ','.join(int_listings)
+        cur.execute(f'SELECT id FROM {table} WHERE id IN ({check_values});')
+        fetched = cur.fetchall()
+        exists = [item[0] for item in fetched]
+        return list(set(listings) - set(exists))
+    else:
+        return listings
+
+
 _drop_tbls()
 mk_main_tbl()
 mk_img_tbl()
 mk_bid_tbl()
-y = [303634334633]
-y = listings_to_items(y)
+v = [303634334633, 353152221964]
+y = listings_to_items([v[0]])
 res1 = get_data_on_listings(y, bid_done=True)
 res2 = get_image_addresses(y)
 res3 = get_bid_histories(y)
@@ -127,3 +132,5 @@ res3 = get_bid_histories(y)
 write(res1, 'main')
 write(res2, 'imgs')
 write(res3, 'bids')
+
+c = remove_existing_items(v, 'main')
