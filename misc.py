@@ -19,7 +19,8 @@ def return_on_fail(default, error=Exception):
             try:
                 result = func(*args, **kwargs)
                 return result
-            except error:
+            except error as e:
+                print(f'Error on function: {func} \t {e}')
                 return default
         return new_func
     return outer_wrapper

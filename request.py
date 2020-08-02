@@ -9,8 +9,8 @@ from urllib.error import HTTPError
 import pandas as pd
 import numpy as np
 from misc import read_yaml, return_on_fail
+from proxy_request import proxy_get, proxy_retrieve
 import operator
-
 
 config = read_yaml('conf.yaml')
 DOWNLOAD_PATH = config['download_path']
@@ -23,8 +23,8 @@ class ItemCountParser(HTMLParser):
         self.data_sentence += data
 
 
-def get_soup(url: str) -> BeautifulSoup:
-    response = requests.get(url)
+def get_soup(url: str, proxy=False) -> BeautifulSoup:
+    response = proxy_get(url) if proxy else requests.get(url)
     page = response.text
     soup = BeautifulSoup(page, 'lxml')
     return soup
@@ -68,7 +68,7 @@ class ListingOptions:
         return '&'.join((self.listing_types_out, self.show_only_out))
 
 
-def get_listings(query: str, options=ListingOptions(), debug=True) -> list:
+def get_listings(query: str, options=ListingOptions(), proxy=False, debug=True) -> list:
 
     def format_search(query: str, pgn=1) -> str:
         query_keywords = query.strip().split()
@@ -79,7 +79,7 @@ def get_listings(query: str, options=ListingOptions(), debug=True) -> list:
         return ebay_str
 
     def count_results(url: str) -> int:
-        soup = get_soup(url)
+        soup = get_soup(url, proxy)
         html_counts = str(soup.find_all(class_='srp-controls__count-heading')[0])
         parser = ItemCountParser()
         parser.feed(html_counts)
@@ -96,7 +96,7 @@ def get_listings(query: str, options=ListingOptions(), debug=True) -> list:
 
     def get_listings_single_pg(*args) -> list:
         def get_item_ids(url: str) -> list:
-            soup = get_soup(url)
+            soup = get_soup(url, proxy)
             tags = soup.find_all(class_='s-item__link')
             links = [tag['href'] for tag in tags]
 
@@ -135,13 +135,14 @@ class Item:
     bids: pd.DataFrame = pd.DataFrame({})
     url: str = f"https://www.ebay.com/itm/{item_id}"
     soup:  BeautifulSoup = get_soup(url)
+    proxy: bool = False
 
     def get_url(self, bid_done=False) -> str:
         orig = 'nordt=true&orig_cvip=true' if bid_done else ''
         return f"https://www.ebay.com/itm/{self.item_id}?{orig}"
 
     def get_soup(self) -> BeautifulSoup:
-        return get_soup(self.url)
+        return get_soup(self.url, self.proxy)
 
     def update_init(self, **kwargs):
         self.url = self.get_url(**kwargs)
@@ -159,7 +160,7 @@ class Item:
         return (self.item_id, self.price, self.cond, self.bundle, self.text,
                 self.seller_percent, self.seller_score, self.rating_count)
 
-    @return_on_fail(np.nan)
+    @return_on_fail(None)
     def get_curr_price(self, debug=False) -> float:
         dollar_html = str(self.soup.find_all(class_='notranslate')[0])
         parser = ItemCountParser()
@@ -207,7 +208,7 @@ class Item:
         :return str
         """
         url_to_seller_text = self.soup.find(id='desc_ifr')['src']
-        seller_soup = get_soup(url_to_seller_text)
+        seller_soup = get_soup(url_to_seller_text, self.proxy)
         text_html = str(seller_soup.find(id='ds_div'))
         parser = ItemCountParser()
         parser.feed(text_html)
@@ -269,7 +270,10 @@ class Item:
         for i, image in enumerate(image_urls):
             try:
                 save_path = f'{DOWNLOAD_PATH}{self.item_id}{size}_{i}.jpg'
-                urlretrieve(image, save_path)
+                if self.proxy:
+                    proxy_retrieve(image, save_path)
+                else:
+                    urlretrieve(image, save_path)
                 image_location.append(save_path)
             except HTTPError as e:
                 print(e) if debug else False
@@ -279,7 +283,7 @@ class Item:
     @return_on_fail(pd.DataFrame({}))
     def get_bidding_hist(self,) -> pd.DataFrame:
         url = f"https://www.ebay.com/bfl/viewbids/{self.item_id}?item={self.item_id}&rt=nc"
-        soup = get_soup(url)
+        soup = get_soup(url, self.proxy)
         records_html = soup.find_all(class_='ui-component-table_tr_detailinfo')
 
         def record_parser(record):
@@ -316,11 +320,21 @@ class Item:
         return df_return
 
 
-def listings_to_items(listings: list) -> list:
-    return [Item(listing) for listing in listings]
+def listings_to_items(listings: list, proxy: bool) -> list:
+    return [Item(listing, proxy=proxy) for listing in listings]
 
 
-def get_data_on_listings(listings: list, bid_done=False) -> pd.DataFrame:
+def nan_to_none(f):
+    def _return_f(*args, **kwargs):
+        df = f(*args, **kwargs)
+        df_ret = df.copy().astype('object')
+        df_ret[df_ret.isnull()] = None
+        return df_ret
+    return _return_f
+
+
+@nan_to_none
+def df_data_on_listings(listings: list, bid_done=False) -> pd.DataFrame:
     data = []
     for listing in listings:
         listing.update_init(bid_done=bid_done)
@@ -331,7 +345,8 @@ def get_data_on_listings(listings: list, bid_done=False) -> pd.DataFrame:
     return df
 
 
-def get_image_addresses(listings: list) -> pd.DataFrame:
+@nan_to_none
+def df_image_addresses(listings: list) -> pd.DataFrame:
     data = []
     for listing in listings:
         for image_url in listing.images:
@@ -342,22 +357,10 @@ def get_image_addresses(listings: list) -> pd.DataFrame:
     return df
 
 
-def get_bid_histories(listings: list) -> pd.DataFrame:
+@nan_to_none
+def df_bid_histories(listings: list) -> pd.DataFrame:
     df = pd.concat([listing.bids for listing in listings]).reset_index(drop=True)
     df.index.rename('idx', inplace=True)
     return df
 
-# x = get_listings('Super Smash Bros Melee')
-
-options = ListingOptions()
-options.listing_types = 'auction'
-options.show_only = 'sold'
-
-# y = get_listings('Super Smash Bros Melee', options)
-# y = [y[0]]
-y = [303634334633]
-y = listings_to_items(y)
-res1 = get_data_on_listings(y, bid_done=True)
-res2 = get_image_addresses(y)
-res3 = get_bid_histories(y)
 

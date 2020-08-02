@@ -2,7 +2,7 @@ import psycopg2
 import psycopg2.extras
 from misc import read_yaml
 from functools import wraps
-from request import listings_to_items, get_bid_histories, get_image_addresses, get_data_on_listings
+from request import listings_to_items, df_bid_histories, df_image_addresses, df_data_on_listings
 
 config = read_yaml('conf.yaml')
 secrets = read_yaml(config['secrets'])
@@ -27,17 +27,6 @@ def get_cursor(f):
                     conn.rollback()
                     raise psycopg2.ProgrammingError
     return _return_f
-
-
-@get_cursor
-def select_all(cur=None):
-    cur.execute("SELECT * FROM ebuy_smash;")
-    print(cur.fetchall())
-
-
-@get_cursor
-def simple_write(cur=None):
-    cur.execute("INSERT INTO ebuy_smash (id, price, cond, bundle, text, seller_percent, seller_score, rating_count) VALUES (1, 2.00, 'ab', 'ab', 'ab', 100.0, 1, 1);")
 
 
 @get_cursor
@@ -84,6 +73,13 @@ def mk_bid_tbl(cur=None, table='bids', foreign_table='main'):
         """.format(table, foreign_table))
 
 
+def mk_tables():
+    mk_main_tbl()
+    mk_img_tbl()
+    mk_bid_tbl()
+    return None
+
+
 @get_cursor
 def _drop_tbls(cur=None, tables=('imgs', 'bids', 'main')):
     '''DEV tool only. Drop tables.'''
@@ -118,19 +114,18 @@ def remove_existing_items(listings, table, cur=None, ):
     else:
         return listings
 
-
 _drop_tbls()
-mk_main_tbl()
-mk_img_tbl()
-mk_bid_tbl()
-v = [303634334633, 353152221964]
-y = listings_to_items([v[0]])
-res1 = get_data_on_listings(y, bid_done=True)
-res2 = get_image_addresses(y)
-res3 = get_bid_histories(y)
-
-write(res1, 'main')
-write(res2, 'imgs')
-write(res3, 'bids')
-
-c = remove_existing_items(v, 'main')
+# mk_main_tbl()
+# mk_img_tbl()
+# mk_bid_tbl()
+# v = [133438070786, 353152221964]
+# y = listings_to_items([v[0]], proxy=False)
+# res1 = df_data_on_listings(y, bid_done=True)
+# res2 = df_image_addresses(y)
+# res3 = df_bid_histories(y)
+#
+# write(res1, 'main')
+# write(res2, 'imgs')
+# write(res3, 'bids')
+#
+# c = remove_existing_items(v, 'main')
