@@ -287,16 +287,21 @@ class Item:
         records_html = soup.find_all(class_='ui-component-table_tr_detailinfo')
 
         def record_parser(record):
+            if 'Cancelled' in record or 'Retracted' in record:
+                return None
             parser = ItemCountParser()
             parser.feed(record)
             bid_data = parser.data_sentence
             bid_user = bid_data[:5]  # Will have the form of a***e.
             feedback_chunk, amt_time_chunk = bid_data.split('$')
-            user_score = feedback_chunk.split('(')[-1].split()[-1][:-1]  # NASTY LINE
+            if bid_user.lower() == 'start':
+                user_score = np.nan
+            else:
+                user_score = feedback_chunk.split('(')[-1].split()[-1][:-1]  # NASTY LINE
             dollar_dec_loc = amt_time_chunk.find('.')
             bid_amt = amt_time_chunk[:dollar_dec_loc + 3]
-            if bid_user.lower() == 'start':
-                return bid_user, 0, bid_amt, None
+            # if bid_user.lower() == 'start':
+            #     return bid_user, 0, bid_amt, None
 
             dt = amt_time_chunk[dollar_dec_loc + 3:]
 
@@ -312,8 +317,9 @@ class Item:
             return bid_user, user_score, bid_amt, f'{date} {time}'
 
         records = list(map(lambda record: record_parser(str(record)), records_html))
+        valid_records = [record for record in records if record]
         col_names = ['user_id', 'score', 'bid', 'datetime']
-        df_records = pd.DataFrame(records, columns=col_names)
+        df_records = pd.DataFrame(valid_records, columns=col_names)
         df_records['id'] = self.item_id
         df_return = df_records[['id', 'user_id', 'score', 'bid', 'datetime']]  # Reordering columns for easy sql later.
         self.bids = df_return
@@ -364,3 +370,7 @@ def df_bid_histories(listings: list) -> pd.DataFrame:
     return df
 
 
+x = [114230556674, 143595870217]
+item = Item(x[0], proxy=True)
+item.update_init(bid_done=True)
+item.get_bidding_hist()
