@@ -11,6 +11,8 @@ import numpy as np
 from misc import read_yaml, return_on_fail
 from proxy_request import proxy_get, proxy_retrieve
 import operator
+import re
+
 
 config = read_yaml('conf.yaml')
 DOWNLOAD_PATH = config['download_path']
@@ -35,8 +37,10 @@ class ListingOptions:
     def __init__(self):
         self.listing_types = 'all'
         self.show_only = ''
+        self.location = 'usa'
         self.listing_types_out = 'LH_All=1'
         self.show_only_out = ''
+        self.location_out = 'LH_PrefLoc=1'
 
     listing_types = property(operator.attrgetter('_listing_types'))
 
@@ -64,8 +68,21 @@ class ListingOptions:
         self._show_only = d
         self.show_only_out = convert[d]
 
+    location = property(operator.attrgetter('_location'))
+
+    @location.setter
+    def location(self, d):
+        valid = ['', 'usa']
+        if d.lower() not in valid:
+            print('Not a valid entry for this field.')
+            self._location = ''
+
+        convert = dict(zip(valid, ['', 'LH_PrefLoc=1']))
+        self._location = d
+        self.location_out = convert[d]
+
     def get(self):
-        return '&'.join((self.listing_types_out, self.show_only_out))
+        return '&'.join((self.listing_types_out, self.show_only_out, self.location_out))
 
 
 def get_listings(query: str, options=ListingOptions(), proxy=False, debug=True) -> list:
@@ -133,6 +150,8 @@ class Item:
     rating_count: int = 0
     images: tuple = ()
     bids: pd.DataFrame = pd.DataFrame({})
+    bid_summary: str = 'N/A'
+    bid_duration: str = 'N/A'
     url: str = f"https://www.ebay.com/itm/{item_id}"
     soup:  BeautifulSoup = get_soup(url)
     proxy: bool = False
@@ -157,8 +176,10 @@ class Item:
         self.seller_score = self.get_feedback_score(debug=debug)
         self.rating_count = self.get_product_rating_count(debug=debug)
         self.images = self.get_images(debug=debug, **kwargs)
+        self.bid_summary, self.bid_duration = self.get_bid_summary(debug=debug)
         return (self.item_id, self.price, self.cond, self.bundle, self.text,
-                self.seller_percent, self.seller_score, self.rating_count)
+                self.seller_percent, self.seller_score, self.rating_count,
+                self.bid_summary, self.bid_duration)
 
     @return_on_fail(None)
     def get_curr_price(self, debug=False) -> float:
@@ -300,9 +321,8 @@ class Item:
                 user_score = feedback_chunk.split('(')[-1].split()[-1][:-1]  # NASTY LINE
             dollar_dec_loc = amt_time_chunk.find('.')
             bid_amt = amt_time_chunk[:dollar_dec_loc + 3]
-            # if bid_user.lower() == 'start':
-            #     return bid_user, 0, bid_amt, None
-
+            if re.search('[a-zA-Z]', bid_amt):  # Check if we have any non-US currency.
+                bid_amt = '0.00'
             dt = amt_time_chunk[dollar_dec_loc + 3:]
 
             def clean_datetime(dt):
@@ -325,6 +345,16 @@ class Item:
         self.bids = df_return
         return df_return
 
+    @return_on_fail('N/A')
+    def get_bid_summary(self, debug=False):
+        url = f"https://www.ebay.com/bfl/viewbids/{self.item_id}?item={self.item_id}&rt=nc"
+        soup = get_soup(url, self.proxy)
+        record_html = str(soup.find_all(class_='app-bid-info_wrapper')[0])
+        parser = ItemCountParser()
+        parser.feed(record_html)
+        data = parser.data_sentence
+        return data, data.split('Duration:')[-1]
+
 
 def listings_to_items(listings: list, proxy: bool) -> list:
     return [Item(listing, proxy=proxy) for listing in listings]
@@ -346,7 +376,9 @@ def df_data_on_listings(listings: list, bid_done=False) -> pd.DataFrame:
         listing.update_init(bid_done=bid_done)
         data.append(listing.get_item_data())
         listing.get_bidding_hist()
-    columns = ['id', 'price', 'cond', 'bundle', 'text', 'seller_percent', 'seller_score', 'rating_count']
+    columns = ['id', 'price', 'cond', 'bundle', 'text',
+               'seller_percent', 'seller_score', 'rating_count',
+               'bid_summary', 'bid_duration']
     df = pd.DataFrame(data, columns=columns)
     return df
 
@@ -370,7 +402,6 @@ def df_bid_histories(listings: list) -> pd.DataFrame:
     return df
 
 
-x = [114230556674, 143595870217]
-item = Item(x[0], proxy=True)
-item.update_init(bid_done=True)
-item.get_bidding_hist()
+# x = [114230556674, 143595870217]
+# item = Item(x[0], proxy=True)
+# df = df_data_on_listings([item], bid_done=True)

@@ -2,7 +2,6 @@ import psycopg2
 import psycopg2.extras
 from misc import read_yaml
 from functools import wraps
-from request import listings_to_items, df_bid_histories, df_image_addresses, df_data_on_listings
 
 config = read_yaml('conf.yaml')
 secrets = read_yaml(config['secrets'])
@@ -39,7 +38,9 @@ def mk_main_tbl(cur=None, table='main'):
         text TEXT,
         seller_percent NUMERIC(4,1),
         seller_score INT,
-        rating_count INT
+        rating_count INT,
+        bid_summary TEXT,
+        bid_duration TEXT
         );
         """.format(table))
 
@@ -63,7 +64,7 @@ def mk_bid_tbl(cur=None, table='bids', foreign_table='main'):
         idx SERIAL PRIMARY KEY,
         id BIGINT NOT NULL,
         user_id CHAR(5) NOT NULL,
-        score INT NOT NULL,
+        score INT,
         bid NUMERIC(6,2) NOT NULL,
         datetime timestamp NULL,
         CONSTRAINT fk_id
@@ -113,6 +114,7 @@ def remove_existing_items(listings, table, cur=None, ):
         return list(set(listings) - set(exists))
     else:
         return listings
+
 
 _drop_tbls()
 # mk_main_tbl()

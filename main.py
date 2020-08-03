@@ -7,7 +7,7 @@ secrets = read_yaml(config['secrets'])
 proxy = True
 
 
-def main(throttle=5):
+def main(throttle=50):
     rdb.mk_tables()
 
     options = req.ListingOptions()
