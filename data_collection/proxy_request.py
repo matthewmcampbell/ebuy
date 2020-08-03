@@ -1,8 +1,9 @@
 import requests
+import shutil
 from data_collection.misc import read_yaml
 from urllib.request import urlretrieve
 
-config = read_yaml('conf.yaml')
+config = read_yaml('data_collection/conf.yaml')
 secrets = read_yaml(config['secrets'])
 
 
@@ -18,7 +19,26 @@ def proxy_get(url):
     return response
 
 
-def proxy_retrieve(url, *args):
-    scrape_api = 'https://app.zenscrape.com/api/v1/get'
-    req_string = f'{scrape_api}?apikey={secrets["zenscrape_api_key"]}&url={url}%2Fxml%2F&location=na'
-    urlretrieve(req_string, *args)
+def proxy_retrieve(url, filename):
+    headers = {
+        "apikey": secrets['zenscrape_api_key']
+    }
+    params = (
+        ("url", url),
+        ("location", "na")
+    )
+    # Open the url image, set stream to True, this will return the stream content.
+    r = requests.get('https://app.zenscrape.com/api/v1/get', stream=True, headers=headers, params=params)
+
+    # Check if the image was retrieved successfully
+    if r.status_code == 200:
+        # Set decode_content value to True, otherwise the downloaded image file's size will be zero.
+        r.raw.decode_content = True
+
+        # Open a local file with wb ( write binary ) permission.
+        with open(filename, 'wb') as f:
+            shutil.copyfileobj(r.raw, f)
+
+        # print('Image successfully Downloaded: ', filename)
+    else:
+        print('Image couldn\'t be retrieved: ', filename)

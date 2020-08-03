@@ -3,7 +3,7 @@ import psycopg2.extras
 from data_collection.misc import read_yaml
 from functools import wraps
 
-config = read_yaml('conf.yaml')
+config = read_yaml('data_collection/conf.yaml')
 secrets = read_yaml(config['secrets'])
 
 

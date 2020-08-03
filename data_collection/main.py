@@ -1,12 +1,12 @@
 from data_collection.misc import read_yaml
 from data_collection import req_to_db as rdb, request as req
 
-config = read_yaml('conf.yaml')
+config = read_yaml('data_collection/conf.yaml')
 secrets = read_yaml(config['secrets'])
 proxy = True
 
 
-def main(throttle=50):
+def main(throttle=5):
     rdb.mk_tables()
 
     options = req.ListingOptions()
@@ -23,9 +23,7 @@ def main(throttle=50):
     items = req.listings_to_items(listings_needed, proxy)
     print('Getting data on items...')
     df1 = req.df_data_on_listings(items, bid_done=True)
-    print('Getting item images...')
     df2 = req.df_image_addresses(items)
-    print('Getting bid histories...')
     df3 = req.df_bid_histories(items)
 
     print('Writing to database...')

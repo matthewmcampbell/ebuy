@@ -14,7 +14,7 @@ import operator
 import re
 
 
-config = read_yaml('conf.yaml')
+config = read_yaml('data_collection/conf.yaml')
 DOWNLOAD_PATH = config['download_path']
 
 
@@ -372,7 +372,8 @@ def nan_to_none(f):
 @nan_to_none
 def df_data_on_listings(listings: list, bid_done=False) -> pd.DataFrame:
     data = []
-    for listing in listings:
+    for i, listing in enumerate(listings):
+        print(f'Progress: {i}/{len(listings)}')
         listing.update_init(bid_done=bid_done)
         data.append(listing.get_item_data())
         listing.get_bidding_hist()

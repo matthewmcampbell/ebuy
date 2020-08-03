@@ -6,4 +6,4 @@
  host: 'localhost'
  # NOT STANDARD PORT, typically you'll want 5432
  port: '5433'
- secrets: './secrets.yaml'
+ secrets: './data_collection/secrets.yaml'
