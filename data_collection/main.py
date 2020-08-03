@@ -1,6 +1,5 @@
-from misc import read_yaml
-import request as req
-import req_to_db as rdb
+from data_collection.misc import read_yaml
+from data_collection import req_to_db as rdb, request as req
 
 config = read_yaml('conf.yaml')
 secrets = read_yaml(config['secrets'])

@@ -8,8 +8,8 @@ from urllib.request import urlretrieve
 from urllib.error import HTTPError
 import pandas as pd
 import numpy as np
-from misc import read_yaml, return_on_fail
-from proxy_request import proxy_get, proxy_retrieve
+from data_collection.misc import read_yaml, return_on_fail
+from data_collection.proxy_request import proxy_get, proxy_retrieve
 import operator
 import re
 

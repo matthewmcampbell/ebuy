@@ -1,6 +1,6 @@
 import psycopg2
 import psycopg2.extras
-from misc import read_yaml
+from data_collection.misc import read_yaml
 from functools import wraps
 
 config = read_yaml('conf.yaml')

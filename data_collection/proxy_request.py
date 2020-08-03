@@ -1,5 +1,5 @@
 import requests
-from misc import read_yaml
+from data_collection.misc import read_yaml
 from urllib.request import urlretrieve
 
 config = read_yaml('conf.yaml')
