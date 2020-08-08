@@ -99,7 +99,6 @@ def write(df, table, cur=None,):
         values = "VALUES({})".format(",".join(["%s" for _ in df_columns]))
         # create INSERT INTO table (columns) VALUES('%s',...)
         insert_stmt = "INSERT INTO {} ({}) {}".format(table, columns, values)
-        print(df.values)
         psycopg2.extras.execute_batch(cur, insert_stmt, df.values)
 
 
@@ -116,18 +115,4 @@ def remove_existing_items(listings, table, cur=None, ):
         return listings
 
 
-_drop_tbls()
-# mk_main_tbl()
-# mk_img_tbl()
-# mk_bid_tbl()
-# v = [133438070786, 353152221964]
-# y = listings_to_items([v[0]], proxy=False)
-# res1 = df_data_on_listings(y, bid_done=True)
-# res2 = df_image_addresses(y)
-# res3 = df_bid_histories(y)
-#
-# write(res1, 'main')
-# write(res2, 'imgs')
-# write(res3, 'bids')
-#
-# c = remove_existing_items(v, 'main')
+# _drop_tbls()

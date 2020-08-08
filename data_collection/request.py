@@ -370,12 +370,12 @@ def nan_to_none(f):
 
 
 @nan_to_none
-def df_data_on_listings(listings: list, bid_done=False) -> pd.DataFrame:
+def df_data_on_listings(listings: list, bid_done=False, **kwargs) -> pd.DataFrame:
     data = []
     for i, listing in enumerate(listings):
         print(f'Progress: {i}/{len(listings)}')
         listing.update_init(bid_done=bid_done)
-        data.append(listing.get_item_data())
+        data.append(listing.get_item_data(**kwargs))
         listing.get_bidding_hist()
     columns = ['id', 'price', 'cond', 'bundle', 'text',
                'seller_percent', 'seller_score', 'rating_count',

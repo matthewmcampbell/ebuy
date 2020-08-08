@@ -4,7 +4,7 @@ from data_collection import req_to_db as rdb, request as req
 config = read_yaml('data_collection/conf.yaml')
 secrets = read_yaml(config['secrets'])
 proxy = True
-
+batch_size = 5
 
 def main(throttle=5):
     rdb.mk_tables()
@@ -19,20 +19,26 @@ def main(throttle=5):
     if throttle:
         listings_needed = listings_needed[:throttle]
         print(f'Throttling to {len(listings_needed)} items.')
-    print('Initializing items...')
-    items = req.listings_to_items(listings_needed, proxy)
-    print('Getting data on items...')
-    df1 = req.df_data_on_listings(items, bid_done=True)
-    df2 = req.df_image_addresses(items)
-    df3 = req.df_bid_histories(items)
+    for i in range(len(listings_needed)//batch_size):
+        try:
+            batch = listings_needed[i*batch_size: (i+1)*batch_size]
+            print('Initializing items...')
+            items = req.listings_to_items(batch, proxy)
+            print('Getting data on items...')
+            df1 = req.df_data_on_listings(items, bid_done=True, size='full')
+            df2 = req.df_image_addresses(items)
+            df3 = req.df_bid_histories(items)
 
-    print('Writing to database...')
-    rdb.write(df1, 'main')
-    rdb.write(df2, 'imgs')
-    rdb.write(df3, 'bids')
-    print('Success.')
+            print('Writing to database...')
+            rdb.write(df1, 'main')
+            rdb.write(df2, 'imgs')
+            rdb.write(df3, 'bids')
+            print('Success.')
+        except Exception as e:  # Logging might be nice here.
+            print('Failure')
+            print(e)
     return None
 
 
 if __name__ == '__main__':
-    main()
+    main(0)
