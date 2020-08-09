@@ -1,9 +1,10 @@
 ---
  api_config_path: '/home/matteo/Projects/Keys/ebuy/ebuy.yaml'
  download_path: '/home/matteo/Projects/Data/ebuy/imgs/'
+ logging_path: '/home/matteo/Projects/Data/ebuy/logs/'
  dbname: 'ebuy'
  user: 'postgres'
  host: 'localhost'
  # NOT STANDARD PORT, typically you'll want 5432
  port: '5433'
- secrets: './data_collection/secrets.yaml'
+ secrets: './secrets.yaml'

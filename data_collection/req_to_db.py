@@ -2,12 +2,16 @@ import psycopg2
 import psycopg2.extras
 from data_collection.misc import read_yaml
 from functools import wraps
-
-config = read_yaml('data_collection/conf.yaml')
-secrets = read_yaml(config['secrets'])
+import os
 
 
-def psql_connect():
+folder = os.path.dirname(__file__)
+config_file = os.path.join(folder, 'conf.yaml')
+config = read_yaml(config_file)
+secrets = read_yaml(os.path.join(folder, config['secrets']))
+
+
+def psql_connect(config, secrets):
     return psycopg2.connect(
         "dbname={} user={} password={} host={} port={}".format(
             config['dbname'], config['user'], secrets['passwd'], config['host'], config['port']
@@ -18,7 +22,7 @@ def psql_connect():
 def get_cursor(f):
     @wraps(f)
     def _return_f(*args, **kwargs):
-        with psql_connect() as conn:
+        with psql_connect(config, secrets) as conn:
             with conn.cursor() as cur:
                 try:
                     return f(*args, cur=cur, **kwargs)

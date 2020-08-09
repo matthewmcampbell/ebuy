@@ -1,10 +1,17 @@
 from data_collection.misc import read_yaml
 from data_collection import req_to_db as rdb, request as req
+import datetime
+import os
+
 
 config = read_yaml('data_collection/conf.yaml')
+logs = config['logging_path']
 secrets = read_yaml(config['secrets'])
 proxy = True
 batch_size = 5
+if not os.path.exists(logs):
+    os.mkdir(logs)
+
 
 def main(throttle=5):
     rdb.mk_tables()
@@ -19,6 +26,10 @@ def main(throttle=5):
     if throttle:
         listings_needed = listings_needed[:throttle]
         print(f'Throttling to {len(listings_needed)} items.')
+
+    df1_fails = []
+    df2_fails = []
+    df3_fails = []
     for i in range(len(listings_needed)//batch_size):
         try:
             batch = listings_needed[i*batch_size: (i+1)*batch_size]
@@ -30,13 +41,27 @@ def main(throttle=5):
             df3 = req.df_bid_histories(items)
 
             print('Writing to database...')
-            rdb.write(df1, 'main')
-            rdb.write(df2, 'imgs')
-            rdb.write(df3, 'bids')
-            print('Success.')
-        except Exception as e:  # Logging might be nice here.
-            print('Failure')
+            try:
+                rdb.write(df1, 'main')
+            except:
+                df1_fails.append(df1)
+            try:
+                rdb.write(df2, 'imgs')
+            except:
+                df2_fails.append(df2)
+            try:
+                rdb.write(df3, 'bids')
+            except:
+                df3_fails.append(df3)
+        except Exception as e:
+            print('Failure on parse.')
             print(e)
+
+    # Logging section
+    label = dict(zip([df1_fails, df2_fails, df3_fails], ['main', 'imgs', 'bids']))
+    for df_fails in label.keys():
+        for df in df_fails:
+            df.to_csv(f'{logs}{label[df_fails]}_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}')
     return None
 
 
