@@ -3,10 +3,11 @@ from data_collection import req_to_db as rdb, request as req
 import datetime
 import os
 
-
-config = read_yaml('data_collection/conf.yaml')
+folder = os.path.dirname(__file__)
+config_file = os.path.join(folder, '..', 'conf.yaml')
+config = read_yaml(config_file)
+secrets = read_yaml(os.path.join(folder, '..', config['secrets']))
 logs = config['logging_path']
-secrets = read_yaml(config['secrets'])
 proxy = True
 batch_size = 5
 if not os.path.exists(logs):

@@ -12,9 +12,13 @@ from data_collection.misc import read_yaml, return_on_fail
 from data_collection.proxy_request import proxy_get, proxy_retrieve
 import operator
 import re
+import os
 
 
-config = read_yaml('data_collection/conf.yaml')
+folder = os.path.dirname(__file__)
+config_file = os.path.join(folder, '../conf.yaml')
+config = read_yaml(config_file)
+secrets = read_yaml(os.path.join(folder, '..', config['secrets']))
 DOWNLOAD_PATH = config['download_path']
 
 

@@ -6,9 +6,9 @@ import os
 
 
 folder = os.path.dirname(__file__)
-config_file = os.path.join(folder, 'conf.yaml')
+config_file = os.path.join(folder, '../conf.yaml')
 config = read_yaml(config_file)
-secrets = read_yaml(os.path.join(folder, config['secrets']))
+secrets = read_yaml(os.path.join(folder, '..', config['secrets']))
 
 
 def psql_connect(config, secrets):

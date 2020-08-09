@@ -2,9 +2,12 @@ import requests
 import shutil
 from data_collection.misc import read_yaml
 from urllib.request import urlretrieve
+import os
 
-config = read_yaml('data_collection/conf.yaml')
-secrets = read_yaml(config['secrets'])
+folder = os.path.dirname(__file__)
+config_file = os.path.join(folder, '../conf.yaml')
+config = read_yaml(config_file)
+secrets = read_yaml(os.path.join(folder, '..', config['secrets']))
 
 
 def proxy_get(url):

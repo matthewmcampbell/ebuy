@@ -1,4 +1,4 @@
 # Ignore these files/paths
 .idea/
 __pycache__/
-data_collection/secrets.yaml
+secrets.yaml
