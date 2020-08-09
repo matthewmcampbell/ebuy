@@ -31,7 +31,8 @@ def main(throttle=5):
     df1_fails = []
     df2_fails = []
     df3_fails = []
-    for i in range(len(listings_needed)//batch_size):
+
+    for i in range(len(listings_needed)//batch_size + 1):
         try:
             batch = listings_needed[i*batch_size: (i+1)*batch_size]
             print('Initializing items...')
@@ -59,10 +60,11 @@ def main(throttle=5):
             print(e)
 
     # Logging section
-    label = dict(zip([df1_fails, df2_fails, df3_fails], ['main', 'imgs', 'bids']))
-    for df_fails in label.keys():
-        for df in df_fails:
-            df.to_csv(f'{logs}{label[df_fails]}_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}')
+    df_fails = [df1_fails, df2_fails, df3_fails]
+    label = ['main', 'imgs', 'bids']
+    for i, label in enumerate(label):
+        for df in df_fails[i]:
+            df.to_csv(f'{logs}{label}_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}')
     return None
 
 
