@@ -14,7 +14,7 @@ if not os.path.exists(logs):
     os.mkdir(logs)
 
 
-def main(throttle=5):
+def main(throttle=0):
     rdb.mk_tables()
 
     options = req.ListingOptions()
@@ -69,4 +69,4 @@ def main(throttle=5):
 
 
 if __name__ == '__main__':
-    main(0)
+    main()
