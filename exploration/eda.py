@@ -34,7 +34,7 @@ st.pyplot()
 
 st.markdown('## Price vs Bid Duration')
 df_bid_duration = df[df.bid_duration.str.contains('day')]
-df_bid_duration['Numeric_duration'] = df_bid_duration.apply(lambda row: row.bid_duration.split()[0], axis=1)
+df_bid_duration['Numeric_duration'] = df_bid_duration.apply(lambda row: row.bid_duration.split()[0], axis=1).astype(int)
 # df[df.bid_duration.str.contains('day')].plot(kind='scatter', x='bid_duration', y='price')
 df_bid_duration.plot(kind='scatter', x='Numeric_duration', y='price')
 st.pyplot()
