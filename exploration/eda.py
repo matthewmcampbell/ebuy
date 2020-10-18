@@ -24,15 +24,19 @@ df['cond'].value_counts().plot(kind='bar')
 st.pyplot()
 
 st.markdown('## Price vs Condition')
-df.plot(kind='scatter', x='cond', y='price')
+accept_conditions_df = df.cond.value_counts()
+accept_conditions = accept_conditions_df[accept_conditions_df > 10].unique()
+df[df.cond.isin(accept_conditions)].plot(kind='scatter', x='cond', y='price')
 st.pyplot()
 
 st.markdown('## Price vs Bid Duration')
-df.plot(kind='scatter', x='bid_duration', y='price')
+df['day' in df.bid_duration].plot(kind='scatter', x='bid_duration', y='price')
 st.pyplot()
 
 st.markdown('## Price vs Rating Count')
-# df['rating_count'] = df['rating_count'].astype(str)
 df.plot(kind='scatter', x='rating_count', y='price')
 st.pyplot()
 
+st.markdown('## Price vs Seller Score')
+df.plot(kind='scatter', x='seller_score', y='price')
+st.pyplot()
