@@ -46,3 +46,7 @@ st.pyplot()
 st.markdown('## Price vs Seller Score')
 df.plot(kind='scatter', x='seller_score', y='price')
 st.pyplot()
+
+st.markdown('## Price vs Seller Percent')
+df.plot(kind='scatter', x='seller_percent', y='price')
+st.pyplot()
