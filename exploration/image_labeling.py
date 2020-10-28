@@ -11,13 +11,14 @@ config = read_yaml(config_file)
 img_path = config['download_path']
 check_file = img_path + 'labels.csv'
 img_size = (1200, 1440)
-features = ['Disc', 'Case', 'Manual', 'Screen', 'Multiple Discs', 'Multiple Cases']
+features = ['Disc', 'Disc (Under)', 'Case', 'Manual', 'Screen', 'Multiple Discs', 'Multiple Cases']
 feature_count = len(features)
 
+# For Multiple case/disc scenarios, we should go back and double check if the correct case/disc is there. Label apt.
 
 def get_response():
     res = ""
-    while not res and len(res)!=feature_count and res != '0':
+    while not res and len(res) != feature_count and res != '0':
         res = input('Classification String: \n')
         if res.lower() == 'exit':
             return 'exit'
@@ -30,8 +31,8 @@ def open_csv(check_file, img_list):
         df = pd.read_csv(check_file, index_col=0)
     else:
         print('Creating new dataframe to begin. Next time you can pick up from a data file.')
-        df = pd.DataFrame({'img_name': img_list})
-        df = df.set_index('img_name')
+        df = pd.DataFrame({'img_name_index': img_list})
+        df = df.set_index('img_name_index')
         df['img_name'] = df.index
         df['features'] = 'missing'
         print(df.columns)
