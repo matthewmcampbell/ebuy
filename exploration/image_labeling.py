@@ -18,7 +18,7 @@ feature_count = len(features)
 
 def get_response():
     res = ""
-    while not res and len(res) != feature_count and res != '0':
+    while len(res) != feature_count and res != '0':
         res = input('Classification String: \n')
         if res.lower() == 'exit':
             return 'exit'
