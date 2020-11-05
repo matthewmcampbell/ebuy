@@ -62,11 +62,15 @@ if __name__ == '__main__':
 
     for img in needed_imgs:
         print(img)
-        im = cv2.imread(img_path + img)
-        im_resized = cv2.resize(im, img_size, interpolation=cv2.INTER_LINEAR)
-        plt.imshow(cv2.cvtColor(im_resized, cv2.COLOR_BGR2RGB))
+        try:
+            im = cv2.imread(img_path + img)
+            im_resized = cv2.resize(im, img_size, interpolation=cv2.INTER_LINEAR)
+            plt.imshow(cv2.cvtColor(im_resized, cv2.COLOR_BGR2RGB))
 
-        res = get_response()
+            res = get_response()
+        except cv2.error:
+            print(f'Could not retrieve image {img}. Filling features as null (all 0\'s')
+            res = '0'*feature_count
 
         fig.canvas.flush_events()
 
