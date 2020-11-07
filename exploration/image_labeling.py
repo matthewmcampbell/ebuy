@@ -49,6 +49,15 @@ def write_csv(df, check_file):
     return None
 
 
+def exit_process(df, check_file):
+    write_csv(df, check_file)
+    plt.close()
+    print('Writing to data file and exiting.\n')
+    needed_imgs = list(df[df.features == 'missing'].img_name)
+    print(f'Only {len(needed_imgs)} to go!')
+    exit(1)
+
+
 if __name__ == '__main__':
     imgs = os.listdir(img_path)
     df = open_csv(check_file, imgs)
@@ -59,6 +68,10 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax = plt.subplot(1, 1, 1)
     fig.show()  # show the window (figure will be in foreground, but the user may move it to background)
+
+    if not needed_imgs:
+        print('No images needed. Exiting.')
+        exit(1)
 
     for img in needed_imgs:
         print(img)
@@ -75,10 +88,6 @@ if __name__ == '__main__':
         fig.canvas.flush_events()
 
         if res == 'exit':
-            write_csv(df, check_file)
-            plt.close()
-            print('Writing to data file and exiting.\n')
-            needed_imgs = list(df[df.features == 'missing'].img_name)
-            print(f'Only {len(needed_imgs)} to go!')
-            exit(1)
+            break
         write_df(df, img, res)
+    exit_process(df, check_file)
