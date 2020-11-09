@@ -23,10 +23,10 @@ def expand_feature_string(df):
 
 def feature_group(df):
     def trunc_img_name(text):
-        return text[:text.find('_')]
+        return text[:text.find('full')]
 
     df['item'] = df.apply(lambda row: trunc_img_name(row['img_name']), axis=1)
-    grouped_df = df.groupby(by='item').max()
+    grouped_df = df.groupby(by='item').max().reset_index()
     return grouped_df
 
 
@@ -71,9 +71,23 @@ def filter_img_df(img_df, option=('all', )):
     return df
 
 
-if __name__ == '__main__':
+def get_filtered_img_df(options, verbose=False):
+    """Useful function to call full cleaning process after initial read in
+    Args:
+        options: (str,)
+        Should be the same as options for filter_img_df
+
+        verbose: bool
+        Controls whether or not extra printing should occur.
+        """
     label_df = get_df_labels()
     label_df = img_df_feature_prep(label_df)
-    print(label_df.shape)
-    label_df = filter_img_df(label_df)
-    print(label_df.shape)
+    print(f"Count of items before filtering: {label_df.shape[0]}")
+    label_df = filter_img_df(label_df, options)
+    print(f"Count of items after filtering: {label_df.shape[0]}")
+    return label_df
+
+
+if __name__ == '__main__':
+    df = get_filtered_img_df(('all',), verbose=True)
+    print(df.head())
