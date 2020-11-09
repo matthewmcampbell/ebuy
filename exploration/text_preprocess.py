@@ -8,6 +8,8 @@ from nltk.stem.porter import PorterStemmer
 from sklearn.feature_extraction.text import CountVectorizer
 import nltk
 import numpy as np
+import pandas as pd
+
 
 nltk.download('stopwords')
 nltk.download('wordnet')
@@ -52,3 +54,9 @@ def nlp_preprocess(text_df):
     text_df = text_df.apply(is_in_check, args=(['super', 'smash', 'bros', 'melee'],))
     return (vectorizer.get_feature_names() + ['super smash bros melee'],
             np.concatenate([X.toarray(), np.array(text_df).reshape(X.shape[0], 1)], axis=1))
+
+
+def make_df(cols, data):
+    df = pd.DataFrame(data=data, columns=cols)
+    return df
+

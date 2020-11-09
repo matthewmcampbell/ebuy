@@ -50,13 +50,7 @@ def filter_irrelevant(df):
     ].copy()
 
 
-def filter_img_df(img_df, option=('all', )):
-    """Main filtering method that, optionally, calls smaller focused filters.
-    Takes in image dataframe and option parameter.
-    Options include: 'all' (default), 'cases', 'discs', 'irr', or
-    you can combine options. Pass in option as a tuple of strings for multiple."""
-    df = img_df.copy()
-
+def get_filtered_img_df(df, option=('all', )):
     if type(option) == str:
         option = (option, )
     option = tuple([opt for opt in option])
@@ -71,7 +65,25 @@ def filter_img_df(img_df, option=('all', )):
     return df
 
 
-def get_filtered_img_df(options, verbose=False):
+def filter_img_df(img_df, options):
+    """Main filtering method that, optionally, calls smaller focused filters.
+    Takes in image dataframe and option parameter.
+    Options include: 'all' (default), 'cases', 'discs', 'irr', or
+    you can combine options. Pass in option as a tuple of strings for multiple."""
+    df = img_df.copy()
+    df = get_filtered_img_df(df, options)
+    return df
+
+
+def filter_img_df_complement(img_df, options):
+    """Similar to filter_img_df, but returns the filtered out rows instead."""
+    df = img_df.copy()
+    df = get_filtered_img_df(df, options)
+    df_complement = img_df[~img_df.item.isin(df.item)]
+    return df_complement
+
+
+def image_label_filter(options, verbose=False):
     """Useful function to call full cleaning process after initial read in
     Args:
         options: (str,)
@@ -82,12 +94,34 @@ def get_filtered_img_df(options, verbose=False):
         """
     label_df = get_df_labels()
     label_df = img_df_feature_prep(label_df)
-    print(f"Count of items before filtering: {label_df.shape[0]}")
+    if verbose:
+        print(f"Count of items before filtering: {label_df.shape[0]}")
     label_df = filter_img_df(label_df, options)
-    print(f"Count of items after filtering: {label_df.shape[0]}")
+    if verbose:
+        print(f"Count of items after filtering: {label_df.shape[0]}")
+    return label_df
+
+
+def image_label_filter_complement(options, verbose=False):
+    """Useful function to call full cleaning process after initial read in
+    Args:
+        options: (str,)
+        Should be the same as options for filter_img_df
+
+        verbose: bool
+        Controls whether or not extra printing should occur.
+        """
+    label_df = get_df_labels()
+    label_df = img_df_feature_prep(label_df)
+    prev_count = label_df.shape[0]
+    if verbose:
+        print(f"Count of items before filtering: {prev_count}")
+    label_df = filter_img_df_complement(label_df, options)
+    if verbose:
+        print(f"Count of filtered items: {label_df.shape[0]}")
     return label_df
 
 
 if __name__ == '__main__':
-    df = get_filtered_img_df(('all',), verbose=True)
+    df = image_label_filter(('all',), verbose=True)
     print(df.head())

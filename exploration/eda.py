@@ -1,5 +1,5 @@
 from read_db import get_dfs
-from df_cleaning import get_filtered_img_df
+from label_df_cleaning import image_label_filter_complement
 import matplotlib.pyplot as plt
 import streamlit as st
 import pandas as pd
@@ -20,7 +20,7 @@ img_filters = st.sidebar.multiselect(
 # Map displayed filter to appropriate input param for get_filtered_img_df
 img_filter_mapping = dict(zip(filter_opts, ('cases', 'discs', 'irr', 'all')))
 filter_choices = [img_filter_mapping[choice] for choice in img_filters]
-img_label_df = get_filtered_img_df(filter_choices, verbose=True)
+img_label_df = image_label_filter_complement(filter_choices)
 
 # Allow price thresholding
 min_price = st.sidebar.slider('Min Price', 0, 50, 0)
@@ -29,13 +29,15 @@ max_price = st.sidebar.slider('Max Price', 50, 200, 200)
 # Read in data from PSQL
 df, df_imgs, df_bids = get_dfs()
 
+
 @st.cache
 def df_filtering(df, prices, img_opts):
     min_price, max_price = prices
     if img_opts:
-        df = df[df.id.isin(img_label_df.item)]
+        df = df[~df.id.isin(img_label_df.item)]
     df = df[(df.price > min_price) & (df.price <= max_price)]
     return df
+
 
 # Filter out based on image filtering criteria
 df = df_filtering(df, (min_price, max_price), img_filters)
