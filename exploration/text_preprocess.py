@@ -44,7 +44,7 @@ def nlp_preprocess(text_df):
     text_df = text_df.apply(word_lemmatizer)
     text_df = text_df.apply(remove_stops)
     text = [" ".join(x) for x in text_df]
-    vectorizer = CountVectorizer(min_df=0.02, max_df=0.80, ngram_range=(1, 2))
+    vectorizer = CountVectorizer(min_df=0.02, max_df=0.65, ngram_range=(1, 2))
     X = vectorizer.fit_transform(text)
     print("NLP BoW Features:\n")
     print(len(vectorizer.get_feature_names()))
