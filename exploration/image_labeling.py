@@ -4,7 +4,6 @@ from ebuy.data_collection.misc import read_yaml
 import os
 import pandas as pd
 
-
 folder = os.path.dirname(__file__)
 config_file = os.path.join(folder, '..', 'conf.yaml')
 config = read_yaml(config_file)
@@ -13,6 +12,7 @@ check_file = img_path + 'labels.csv'
 img_size = (1200, 1440)
 features = ['Disc', 'Disc (Under)', 'Case', 'Manual', 'Screen', 'Multiple Discs', 'Multiple Cases']
 feature_count = len(features)
+
 
 # For Multiple case/disc scenarios, we should go back and double check if the correct case/disc is there. Label apt.
 
@@ -83,7 +83,7 @@ if __name__ == '__main__':
             res = get_response()
         except cv2.error:
             print(f'Could not retrieve image {img}. Filling features as null (all 0\'s')
-            res = '0'*feature_count
+            res = '0' * feature_count
 
         fig.canvas.flush_events()
 

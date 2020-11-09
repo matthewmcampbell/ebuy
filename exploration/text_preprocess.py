@@ -50,7 +50,5 @@ def nlp_preprocess(text_df):
     print(len(vectorizer.get_feature_names()))
     print(vectorizer.get_feature_names())
     text_df = text_df.apply(is_in_check, args=(['super', 'smash', 'bros', 'melee'],))
-    return vectorizer.get_feature_names() + ['super smash bros melee'], np.concatenate([X.toarray(), np.array(text_df).reshape(X.shape[0], 1)], axis=1)
-
-
-print(nlp_preprocess(text_df))
+    return (vectorizer.get_feature_names() + ['super smash bros melee'],
+            np.concatenate([X.toarray(), np.array(text_df).reshape(X.shape[0], 1)], axis=1))
