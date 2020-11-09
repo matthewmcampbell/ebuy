@@ -11,12 +11,12 @@ label_path = img_path + 'labels.csv'
 
 
 def get_df_labels():
-    return pd.read_csv(label_path, index_col=0).reset_index(drop=True)
+    return pd.read_csv(label_path, index_col=0, dtype={'features': str}).reset_index(drop=True)
 
 
 def expand_feature_string(df):
     for i, feature in enumerate(features):
-        df[feature] = df.features.str[i]
+        df[feature] = df.features.str[i].astype(int)
     del df["features"]
     return df
 
@@ -25,7 +25,7 @@ def feature_group(df):
     def trunc_img_name(text):
         return text[:text.find('_')]
 
-    df['item'] = df.apply(lambda row: trunc_img_name(row), axis=1)
+    df['item'] = df.apply(lambda row: trunc_img_name(row['img_name']), axis=1)
     grouped_df = df.groupby(by='item').max()
     return grouped_df
 
@@ -46,7 +46,7 @@ def filter_multi_cases(df):
 
 def filter_irrelevant(df):
     return df[
-        (df['Disc'] == 0) & (df['Case'] == 0) & (df['Manual'] == 0)
+        ~((df['Disc'] == 0) & (df['Case'] == 0) & (df['Manual'] == 0))
     ].copy()
 
 
@@ -74,5 +74,6 @@ def filter_img_df(img_df, option=('all', )):
 if __name__ == '__main__':
     label_df = get_df_labels()
     label_df = img_df_feature_prep(label_df)
+    print(label_df.shape)
     label_df = filter_img_df(label_df)
-    label_df.head(50)
+    print(label_df.shape)
