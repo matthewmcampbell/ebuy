@@ -17,3 +17,13 @@ def read_data():
         Try running the main script in "cleaning""""")
         exit(1)
     return df
+
+
+df = read_data()
+df.notnull().all().to_csv('check.csv')
+
+
+def handle_missing(df):
+
+    def handle_bundle():
+        df.fillna()
