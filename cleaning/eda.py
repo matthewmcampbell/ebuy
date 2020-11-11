@@ -1,6 +1,6 @@
-from exploration.read_db import get_dfs
-from exploration.label_df_cleaning import join_to_main_df as img_join
-from exploration.text_preprocess import nlp_join, make_nlp_df
+from cleaning.read_db import get_dfs
+from cleaning.label_df_cleaning import join_to_main_df as img_join
+from cleaning.text_preprocess import nlp_join, make_nlp_df
 import streamlit as st
 
 # Supply user with choices for df filtering

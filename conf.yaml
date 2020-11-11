@@ -1,6 +1,7 @@
 ---
  api_config_path: '/home/matteo/Projects/Keys/ebuy/ebuy.yaml'
  download_path: '/home/matteo/Projects/Data/ebuy/imgs/'
+ csv_path: '/home/matteo/Projects/Data/ebuy/train/'
  logging_path: '/home/matteo/Projects/Data/ebuy/logs/'
  dbname: 'ebuy'
  user: 'postgres'

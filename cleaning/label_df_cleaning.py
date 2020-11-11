@@ -1,5 +1,5 @@
-from ebuy.data_collection.misc import read_yaml
-from ebuy.exploration.image_labeling import features
+from data_collection.misc import read_yaml
+from cleaning.image_labeling import features
 import os
 import pandas as pd
 

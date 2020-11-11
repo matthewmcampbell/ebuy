@@ -1,6 +1,6 @@
 import cv2
 import matplotlib.pyplot as plt
-from ebuy.data_collection.misc import read_yaml
+from data_collection.misc import read_yaml
 import os
 import pandas as pd
 
