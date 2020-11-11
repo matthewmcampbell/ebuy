@@ -1,7 +1,7 @@
 import pandas as pd
 import os
-from ebuy.data_collection.misc import read_yaml
-from ebuy.data_collection.req_to_db import psql_connect
+from data_collection.misc import read_yaml
+from data_collection.req_to_db import psql_connect
 
 
 folder = os.path.dirname(__file__)

@@ -122,6 +122,14 @@ def image_label_filter_complement(options, verbose=False):
     return label_df
 
 
+def join_to_main_df(df, *args, **kwargs):
+    df_labels = image_label_filter(*args)
+    complement = image_label_filter_complement(*args, **kwargs)
+    df_filtered = df[~df.id.isin(complement.item)]
+    df_labels = df_labels.rename(columns={'item': 'id'})
+    df_labels['id'] = df_labels['id'].astype('int64')
+    return df_filtered.merge(df_labels, how='left', on='id')
+
 if __name__ == '__main__':
     df = image_label_filter(('all',), verbose=True)
     print(df.head())

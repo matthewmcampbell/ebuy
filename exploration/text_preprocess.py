@@ -1,15 +1,13 @@
-from read_db import get_dfs
+from exploration.read_db import get_dfs
 import string
 
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem import WordNetLemmatizer
-from nltk.stem.porter import PorterStemmer
 from sklearn.feature_extraction.text import CountVectorizer
 import nltk
 import numpy as np
 import pandas as pd
-
 
 nltk.download('stopwords')
 nltk.download('wordnet')
@@ -18,7 +16,7 @@ df, _, _ = get_dfs()
 text_df = df.text
 
 
-def nlp_preprocess(text_df):
+def nlp_preprocess(text_df, verbose=False):
     def remove_punctuation(text):
         no_punct = "".join([c for c in text if c not in string.punctuation])
         return no_punct
@@ -48,15 +46,22 @@ def nlp_preprocess(text_df):
     text = [" ".join(x) for x in text_df]
     vectorizer = CountVectorizer(min_df=0.02, max_df=0.65, ngram_range=(1, 2))
     X = vectorizer.fit_transform(text)
-    print("NLP BoW Features:\n")
-    print(len(vectorizer.get_feature_names()))
-    print(vectorizer.get_feature_names())
+    if verbose:
+        print("NLP BoW Features:\n")
+        print(len(vectorizer.get_feature_names()))
+        print(vectorizer.get_feature_names())
     text_df = text_df.apply(is_in_check, args=(['super', 'smash', 'bros', 'melee'],))
     return (vectorizer.get_feature_names() + ['super smash bros melee'],
             np.concatenate([X.toarray(), np.array(text_df).reshape(X.shape[0], 1)], axis=1))
 
 
-def make_df(cols, data):
-    df = pd.DataFrame(data=data, columns=cols)
-    return df
+def make_nlp_df(df, **kwargs):
+    ids = df.id
+    cols, data = nlp_preprocess(df.text, **kwargs)
+    res_df = pd.DataFrame(data=data, columns=cols)
+    res_df['id'] = ids
+    return res_df
 
+
+def nlp_join(df, nlp_df):
+    return df.merge(nlp_df, on='id', how='left')

@@ -1,8 +1,7 @@
-from read_db import get_dfs
-from label_df_cleaning import image_label_filter_complement
-import matplotlib.pyplot as plt
+from exploration.read_db import get_dfs
+from exploration.label_df_cleaning import join_to_main_df as img_join
+from exploration.text_preprocess import nlp_join, make_nlp_df
 import streamlit as st
-import pandas as pd
 
 # Supply user with choices for df filtering
 filter_opts = (
@@ -20,7 +19,7 @@ img_filters = st.sidebar.multiselect(
 # Map displayed filter to appropriate input param for get_filtered_img_df
 img_filter_mapping = dict(zip(filter_opts, ('cases', 'discs', 'irr', 'all')))
 filter_choices = [img_filter_mapping[choice] for choice in img_filters]
-img_label_df = image_label_filter_complement(filter_choices)
+# img_label_df = image_label_filter_complement(filter_choices)
 
 # Allow price thresholding
 min_price = st.sidebar.slider('Min Price', 0, 50, 0)
@@ -30,11 +29,29 @@ max_price = st.sidebar.slider('Max Price', 50, 200, 200)
 df, df_imgs, df_bids = get_dfs()
 
 
+# Perform NLP formatting
 @st.cache
-def df_filtering(df, prices, img_opts):
+def get_nlp_df(df):
+    nlp_df = make_nlp_df(df)
+    rename_cols = []
+    for col in nlp_df.columns:
+        if col in df.columns and col != 'id':
+            rename_cols.append(col)
+    rename_map = {col: col + '(w)' for col in rename_cols}
+    return nlp_df.rename(columns=rename_map)
+
+
+# Collect NLP data with above method.
+nlp_df = get_nlp_df(df)
+
+
+@st.cache
+def df_filtering(df, prices, img_opts='all', nlp=True, **kwargs):
     min_price, max_price = prices
     if img_opts:
-        df = df[~df.id.isin(img_label_df.item)]
+        df = img_join(df, img_opts, **kwargs)
+    if nlp:
+        df = nlp_join(df, nlp_df)
     df = df[(df.price > min_price) & (df.price <= max_price)]
     return df
 
@@ -67,7 +84,6 @@ df_bid_duration = df[df.bid_duration.str.contains('day')].copy()
 df_bid_duration['Numeric_duration'] = df_bid_duration.apply(
     lambda row: row.bid_duration.split()[0], axis=1
 ).astype(int)
-# df[df.bid_duration.str.contains('day')].plot(kind='scatter', x='bid_duration', y='price')
 df_bid_duration.plot(kind='scatter', x='Numeric_duration', y='price')
 st.pyplot()
 
