@@ -1,0 +1,43 @@
+This text file aims to guide the logic of the data handling
+prior to fitting a model. All manipulations are listed below
+along with the reasoning behind it.
+
+Missing Data Handling by Column:
+    bundle:
+        The webscraper never even picked up a 'yes' option for the bundle
+        (it only consists of NaNs and 'No') so we are free to drop this col.
+
+    text:
+        There are only 7/1363 missing values for text, so dropping the NaN
+        rows shouldn't hurt us badly.
+
+    seller_percent:
+        48/1363 missing values. Median imputation would give 100 (maximum
+        score), so we'll opt for Mean instead (~99.16). There is quite low
+        variance in this predictor anyways, so most likely will not have
+        much impact.
+
+    rating_count:
+        289/1363 missing values. This one's tougher. Such a large number of
+        missing values should be handled through a better imputation method
+        like CART, but we'll stick with Median imputation again giving us
+        the dominant category of 857 which is indicative of a "correctly"
+        selected sell category.
+
+    bid_summary:
+        Dropping this for now, bid_duration is the relevant feature extracted.
+
+    bid_duration:
+        Filtering this down on the condition '"day" in data'. This will leave
+        out the 3 data points that came out in Spanish. Amusingly, the proxy
+        service sometimes will utilize servers in other countries, which then
+        causes Ebay to render text in the appropriate language. Something to
+        keep in mind for other users.
+
+    Image feature columns (Disc - Multiple Cases):
+        158/1363 missing values. This is the trickiest one. We are at about 12%
+        data loss if we decide to drop here. We can't fill with 0's although
+        it's tempting: all 0's is indicative of an IRRELEVANT image, not the
+        lack of an image all together. The best way ahead here is to
+        open up a new category for the missing values and treat it as its own
+        option.

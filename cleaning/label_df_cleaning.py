@@ -26,6 +26,7 @@ def feature_group(df):
         return text[:text.find('full')]
 
     df['item'] = df.apply(lambda row: trunc_img_name(row['img_name']), axis=1)
+    df = df.drop(columns='img_name')
     grouped_df = df.groupby(by='item').max().reset_index()
     return grouped_df
 

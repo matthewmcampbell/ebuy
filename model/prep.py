@@ -22,11 +22,59 @@ def read_data():
     return df
 
 
-df = read_data()
-df.notnull().all().to_csv('check.csv')
-
-
 def handle_missing(df):
+    """Method to handle all missing values on a
+    per column basis. See data_handling_notes.txt
+    for all reasonings on these methods.
 
-    def handle_bundle():
-        df.fillna()
+    Args:
+        df: pd.DataFrame generated from read_data()
+
+    Returns:
+        df: pd.DataFrame"""
+    def _bundle(df):
+        return df.drop(columns='bundle')
+
+    def _text(df):
+        return df.dropna(subset=['text'])
+
+    def _seller_percent(df):
+        df.seller_percent = df.seller_percent.fillna(
+            df.seller_percent.median()
+        )
+        return df
+
+    def _rating_count(df):
+        df.rating_count = df.rating_count.fillna(
+            df.rating_count.median()
+        )
+        return df
+
+    def _bid_summary(df):
+        return df.drop(columns='bid_summary')
+
+    def _bid_duration(df):
+        return df[df.bid_duration.str.contains('day')].copy()
+
+    def _img_features(df):
+        cols = ['Disc', 'Disc (Under)', 'Case', 'Manual', 'Screen',
+                    'Multiple Discs', 'Multiple Cases']
+        df['Missing_img'] = df['Disc'].isna().astype('int').astype('category')
+        df[cols] = df[cols].fillna(0).astype('category')
+        return df
+
+    initial_rows = df.shape[0]
+    nans_removed = (df.pipe(_bundle)
+                      .pipe(_text)
+                      .pipe(_seller_percent)
+                      .pipe(_rating_count)
+                      .pipe(_bid_summary)
+                      .pipe(_bid_duration)
+                      .pipe(_img_features))
+
+    after_rows = nans_removed.shape[0]
+    loss = round((initial_rows - after_rows) / initial_rows, 2)
+    print(f"""Started with {initial_rows} rows.\n
+                Ended with {after_rows}.\n
+                Lost approx {loss}""")
+    return nans_removed.reset_index(drop=True)
