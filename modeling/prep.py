@@ -9,7 +9,7 @@ csv_path = config['csv_path']
 data_path = csv_path + 'train.csv'
 
 
-def read_data():
+def read_data(data_path=data_path):
     """Method that reads in csv data at path determined in config.yaml.
     If no file is present, will throw an error. Need to run main.py
     in cleaning folder to make csv."""
@@ -32,11 +32,12 @@ def handle_missing(df):
 
     Returns:
         df: pd.DataFrame"""
-    def _bundle(df):
-        return df.drop(columns='bundle')
+    def _drop_cols(df):
+        cols = ['id', 'bundle', 'text', 'bid_summary']
+        return df.drop(columns=cols)
 
-    def _text(df):
-        return df.dropna(subset=['text'])
+    def _cond(df):
+        return pd.get_dummies(df, columns=['cond'])
 
     def _seller_percent(df):
         df.seller_percent = df.seller_percent.fillna(
@@ -47,14 +48,13 @@ def handle_missing(df):
     def _rating_count(df):
         df.rating_count = df.rating_count.fillna(
             df.rating_count.median()
-        )
+        ).astype('category')
         return df
 
-    def _bid_summary(df):
-        return df.drop(columns='bid_summary')
-
     def _bid_duration(df):
-        return df[df.bid_duration.str.contains('day')].copy()
+        df = df[df.bid_duration.str.contains('day')].copy()
+        df_dummy = pd.get_dummies(df, columns=['bid_duration'])
+        return df_dummy
 
     def _img_features(df):
         cols = ['Disc', 'Disc (Under)', 'Case', 'Manual', 'Screen',
@@ -64,17 +64,16 @@ def handle_missing(df):
         return df
 
     initial_rows = df.shape[0]
-    nans_removed = (df.pipe(_bundle)
-                      .pipe(_text)
+    nans_removed = (df.pipe(_drop_cols)
+                      .pipe(_cond)
                       .pipe(_seller_percent)
                       .pipe(_rating_count)
-                      .pipe(_bid_summary)
                       .pipe(_bid_duration)
                       .pipe(_img_features))
 
     after_rows = nans_removed.shape[0]
     loss = round((initial_rows - after_rows) / initial_rows, 2)
     print(f"""Started with {initial_rows} rows.\n
-                Ended with {after_rows}.\n
-                Lost approx {loss}""")
+Ended with {after_rows}.\n
+Lost approx {loss}""")
     return nans_removed.reset_index(drop=True)

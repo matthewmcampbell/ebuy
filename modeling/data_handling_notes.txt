@@ -7,10 +7,6 @@ Missing Data Handling by Column:
         The webscraper never even picked up a 'yes' option for the bundle
         (it only consists of NaNs and 'No') so we are free to drop this col.
 
-    text:
-        There are only 7/1363 missing values for text, so dropping the NaN
-        rows shouldn't hurt us badly.
-
     seller_percent:
         48/1363 missing values. Median imputation would give 100 (maximum
         score), so we'll opt for Mean instead (~99.16). There is quite low
