@@ -23,6 +23,9 @@ DOWNLOAD_PATH = config['download_path']
 
 
 class ItemCountParser(HTMLParser):
+    """Child of HTMLParser. Adds in 'data' as it is found within
+    html syntax. Look to HTMLParser docs for more details and
+    examples."""
     data_sentence = ''
 
     def handle_data(self, data):
@@ -30,6 +33,12 @@ class ItemCountParser(HTMLParser):
 
 
 def get_soup(url: str, proxy=False) -> BeautifulSoup:
+    """Automated method to get BeautifulSoup object from url.
+    Args:
+        url: str
+        proxy: bool indicated proxy usage.
+    Returns:
+        BeautifulSoup object."""
     response = proxy_get(url) if proxy else requests.get(url)
     page = response.text
     soup = BeautifulSoup(page, 'lxml')
@@ -37,7 +46,16 @@ def get_soup(url: str, proxy=False) -> BeautifulSoup:
 
 
 class ListingOptions:
+    """Object to hold query options for ebay listings. Note
+    that this doesn't contain the query itself! Options include:
+    self.listing_types: 'all', 'offers', 'auction', 'buy_now'
+    self.show_only: '', 'sold'
+    self.location: '', 'usa'
 
+    Note that, since the url-encoded options aren't intuitive,
+    the attributes of ListingOptions get mapped to their url
+    counterparts upon being set. See self.listing_types(...)
+    for an example of this."""
     def __init__(self):
         self.listing_types = 'all'
         self.show_only = ''
@@ -86,11 +104,19 @@ class ListingOptions:
         self.location_out = convert[d]
 
     def get(self):
+        """Combines and returns all options into url-friendly sub-string."""
         return '&'.join((self.listing_types_out, self.show_only_out, self.location_out))
 
 
 def get_listings(query: str, options=ListingOptions(), proxy=False, debug=True) -> list:
-
+    """Method to get all listing ids for a given query and ListingOptions.
+    Args:
+        query: str to pass into Ebay for search.
+        options: ListingOptions to control options like location, Buy It Now, etc.
+        proxy: bool to control proxy usage.
+        debug: bool to control debug pring messages.
+    Returns:
+        [int, ..., int]"""
     def format_search(query: str, pgn=1) -> str:
         query_keywords = query.strip().split()
         frmt_query = '+'.join(query_keywords)
@@ -144,6 +170,13 @@ def get_listings(query: str, options=ListingOptions(), proxy=False, debug=True) 
 
 @dataclass
 class Item:
+    """Object to store all item info from listing page for a
+    particular item id. Contains many 'get' methods for each
+    attribute, most of them including a decorator to default
+    to a NaN-like string or int. This is critical as the html
+    for the Ebay pages will, eventually, be altered and ruin
+    the existing methods. They should be updated regularly to
+    accommodate this."""
     item_id: int = 0
     price: float = 0.0
     cond: str = 'N/A'
@@ -168,10 +201,13 @@ class Item:
         return get_soup(self.url, self.proxy)
 
     def update_init(self, **kwargs):
+        """Method to gather both the relevant url and BeautifulSoup."""
         self.url = self.get_url(**kwargs)
         self.soup = self.get_soup()
 
     def get_item_data(self, debug=False, **kwargs) -> tuple:
+        """Main method to be called. Calls all other data collecting methods
+        that aren't called in update_init()."""
         self.price = self.get_curr_price(debug=debug)
         self.cond = self.get_condition(debug=debug)
         self.bundle = self.get_custom_bundle(debug=debug)
@@ -306,7 +342,7 @@ class Item:
         return tuple(image_location)
 
     @return_on_fail(pd.DataFrame({}))
-    def get_bidding_hist(self,) -> pd.DataFrame:
+    def get_bidding_history(self, ) -> pd.DataFrame:
         url = f"https://www.ebay.com/bfl/viewbids/{self.item_id}?item={self.item_id}&rt=nc"
         soup = get_soup(url, self.proxy)
         records_html = soup.find_all(class_='ui-component-table_tr_detailinfo')
@@ -361,10 +397,22 @@ class Item:
 
 
 def listings_to_items(listings: list, proxy: bool) -> list:
+    """Method that maps Item class on top of list of ids.
+    Args:
+        listings: [int, ..., int] a list of item ids.
+        proxy: bool to control proxy usage.
+    Returns:
+        [Item, ..., Item]"""
     return [Item(listing, proxy=proxy) for listing in listings]
 
 
 def nan_to_none(f):
+    """Wrapper method to convert np.nan's to None. This needs
+    to happen for proper PSQL read ins. Really a nuisance though.
+    Args:
+        f: function
+    Returns:
+        _return_f: modified f function."""
     def _return_f(*args, **kwargs):
         df = f(*args, **kwargs)
         df_ret = df.copy().astype('object')
@@ -375,12 +423,21 @@ def nan_to_none(f):
 
 @nan_to_none
 def df_data_on_listings(listings: list, bid_done=False, **kwargs) -> pd.DataFrame:
+    """Method to gather item data into dataframe. This method
+    is currently doing too much and causes bad coupling. Should
+    separate out the for loop into it's own function.
+    Args:
+        listings: [Item, ..., Item] list of Items
+        bid_done: bool to control if bids should be accounted
+        kwargs: the parameters to feed to Item.get_item_data
+    Return:
+        pd.DataFrame"""
     data = []
     for i, listing in enumerate(listings):
         print(f'Progress: {i}/{len(listings)}')
         listing.update_init(bid_done=bid_done)
         data.append(listing.get_item_data(**kwargs))
-        listing.get_bidding_hist()
+        listing.get_bidding_history()
     columns = ['id', 'price', 'cond', 'bundle', 'text',
                'seller_percent', 'seller_score', 'rating_count',
                'bid_summary', 'bid_duration']
@@ -390,6 +447,11 @@ def df_data_on_listings(listings: list, bid_done=False, **kwargs) -> pd.DataFram
 
 @nan_to_none
 def df_image_addresses(listings: list) -> pd.DataFrame:
+    """Method to gather image addresses (on local machine).
+    Args:
+        listings: [Item, ..., Item] list of Items
+    Returns:
+        pd.DataFrame"""
     data = []
     for listing in listings:
         for image_url in listing.images:
@@ -402,6 +464,11 @@ def df_image_addresses(listings: list) -> pd.DataFrame:
 
 @nan_to_none
 def df_bid_histories(listings: list) -> pd.DataFrame:
+    """Method to gather bid histories on items.
+        Args:
+            listings: [Item, ..., Item] list of Items
+        Returns:
+            pd.DataFrame"""
     df = pd.concat([listing.bids for listing in listings]).reset_index(drop=True)
     df.index.rename('idx', inplace=True)
     return df

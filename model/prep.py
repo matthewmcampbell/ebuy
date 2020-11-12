@@ -10,6 +10,9 @@ data_path = csv_path + 'train.csv'
 
 
 def read_data():
+    """Method that reads in csv data at path determined in config.yaml.
+    If no file is present, will throw an error. Need to run main.py
+    in cleaning folder to make csv."""
     try:
         df = pd.read_csv(data_path, index_col=0)
     except FileNotFoundError:
