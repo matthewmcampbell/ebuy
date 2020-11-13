@@ -8,6 +8,7 @@ config_file = os.path.join(folder, '..', 'conf.yaml')
 config = read_yaml(config_file)
 secrets = read_yaml(os.path.join(folder, '..', config['secrets']))
 logs = config['logging_path']
+
 proxy = True
 batch_size = 5
 if not os.path.exists(logs):
@@ -15,6 +16,15 @@ if not os.path.exists(logs):
 
 
 def main(throttle=0):
+    """Main method for data_collection folder. Sets up listing
+    options and query, gets response from Ebay (can use proxy
+    to safeguard against getting blacklisted), scrapes responses
+    into Item objects then writes the data into postgres DB. The
+    writing process is done in batches (5 or 10 is a good idea).
+    Args:
+        throttle: int
+            if 0, nothing happens. if >0, only gathers that many
+            items."""
     rdb.mk_tables()
 
     options = req.ListingOptions()
