@@ -72,8 +72,8 @@ def handle_missing(df):
                       .pipe(_img_features))
 
     after_rows = nans_removed.shape[0]
-    loss = round((initial_rows - after_rows) / initial_rows, 2)
+    loss = round((initial_rows - after_rows) / initial_rows, 3)
     print(f"""Started with {initial_rows} rows.\n
 Ended with {after_rows}.\n
-Lost approx {loss}""")
+Lost approx {loss}%""")
     return nans_removed.reset_index(drop=True)
