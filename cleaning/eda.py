@@ -1,7 +1,8 @@
+import streamlit as st
+
 from cleaning.read_db import get_dfs
 from cleaning.label_df_cleaning import join_to_main_df as img_join
-from cleaning.text_preprocess import nlp_join, make_nlp_df
-import streamlit as st
+from cleaning.text_preprocess import nlp_join, get_nlp_df
 
 # Supply user with choices for df filtering
 filter_opts = (
@@ -31,18 +32,12 @@ df, df_imgs, df_bids = get_dfs()
 
 # Perform NLP formatting
 @st.cache
-def get_nlp_df(df):
-    nlp_df = make_nlp_df(df)
-    rename_cols = []
-    for col in nlp_df.columns:
-        if col in df.columns and col != 'id':
-            rename_cols.append(col)
-    rename_map = {col: col + '(w)' for col in rename_cols}
-    return nlp_df.rename(columns=rename_map)
+def get_nlp_df_st(df):
+    return get_nlp_df(df)
 
 
 # Collect NLP data with above method.
-nlp_df = get_nlp_df(df)
+nlp_df = get_nlp_df_st(df)
 
 
 @st.cache

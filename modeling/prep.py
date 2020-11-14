@@ -1,6 +1,8 @@
-from data_collection.misc import read_yaml
 import os
+
 import pandas as pd
+
+from data_collection.misc import read_yaml
 
 folder = os.path.dirname(__file__)
 config_file = os.path.join(folder, '..', 'conf.yaml')

@@ -1,7 +1,8 @@
-from data_collection.misc import read_yaml
-from data_collection import req_to_db as rdb, request as req
 import datetime
 import os
+
+from data_collection.misc import read_yaml
+from data_collection import req_to_db as rdb, request as req
 
 folder = os.path.dirname(__file__)
 config_file = os.path.join(folder, '..', 'conf.yaml')

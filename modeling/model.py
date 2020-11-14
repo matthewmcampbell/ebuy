@@ -1,11 +1,11 @@
-from sklearn.tree import DecisionTreeRegressor
+import os
+
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import cross_val_score
 from sklearn.inspection import permutation_importance
+from sklearn.model_selection import cross_val_score
+
 import modeling.prep as prep
 from data_collection.misc import read_yaml
-import os
-import pandas as pd
 
 folder = os.path.dirname(__file__)
 config_file = os.path.join(folder, '..', 'conf.yaml')

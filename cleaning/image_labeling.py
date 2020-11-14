@@ -1,8 +1,9 @@
 import cv2
 import matplotlib.pyplot as plt
-from data_collection.misc import read_yaml
 import os
 import pandas as pd
+
+from data_collection.misc import read_yaml
 
 folder = os.path.dirname(__file__)
 config_file = os.path.join(folder, '..', 'conf.yaml')
@@ -14,9 +15,13 @@ features = ['Disc', 'Disc (Under)', 'Case', 'Manual', 'Screen', 'Multiple Discs'
 feature_count = len(features)
 
 
-# For Multiple case/disc scenarios, we should go back and double check if the correct case/disc is there. Label apt.
-
 def get_response():
+    """Method to get input from the user on an image.
+    User can only input a character sequence of 0,
+    indicating a response of all 0's, or a response
+    of len(features), indicating each feature has been
+    accounted for. E.g., a response of '1001010', should
+    be expected. The user is not restricted to binary however."""
     res = ""
     while len(res) != feature_count and res != '0':
         res = input('Classification String: \n')
@@ -26,6 +31,15 @@ def get_response():
 
 
 def open_csv(check_file, img_list):
+    """Creates or opens existing dataframe
+    from file containing the progress of labeling
+    on the images.
+    Args:
+        check_file: str for file path
+        img_list: list of image addresses on local
+            machine
+    Returns:
+        pd.DataFrame"""
     if os.path.exists(check_file):
         print('Opening existing csv file.')
         df = pd.read_csv(check_file, index_col=0)
@@ -50,6 +64,12 @@ def write_csv(df, check_file):
 
 
 def exit_process(df, check_file):
+    """Writes dataframe to csv and closes existing plot.
+    Args:
+        df: pd.DataFrame
+        check_file: str for file path
+    Returns:
+        None (exits)"""
     write_csv(df, check_file)
     plt.close()
     print('Writing to data file and exiting.\n')

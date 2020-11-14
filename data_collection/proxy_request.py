@@ -1,8 +1,8 @@
+import os
 import requests
 import shutil
+
 from data_collection.misc import read_yaml
-from urllib.request import urlretrieve
-import os
 
 folder = os.path.dirname(__file__)
 config_file = os.path.join(folder, '../conf.yaml')

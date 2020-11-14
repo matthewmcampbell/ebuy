@@ -1,9 +1,9 @@
-from cleaning.read_db import get_dfs
-from cleaning.label_df_cleaning import join_to_main_df as img_join
-from cleaning.text_preprocess import nlp_join, make_nlp_df
-from data_collection.misc import read_yaml
 import os
 
+from cleaning.read_db import get_dfs
+from cleaning.label_df_cleaning import join_to_main_df as img_join
+from cleaning.text_preprocess import nlp_join, get_nlp_df
+from data_collection.misc import read_yaml
 
 folder = os.path.dirname(__file__)
 config_file = os.path.join(folder, '..', 'conf.yaml')
@@ -16,29 +16,27 @@ if not os.path.exists(csv_path):
     print(f'Made path! {csv_path}')
 
 # Allow price thresholding
-min_price = 20
-max_price = 100
+price_range = (20, 100)
 
 # Read in data from PSQL
 df, _, _ = get_dfs()
-
-
-# Perform NLP formatting
-def get_nlp_df(df):
-    nlp_df = make_nlp_df(df)
-    rename_cols = []
-    for col in nlp_df.columns:
-        if col in df.columns and col != 'id':
-            rename_cols.append(col)
-    rename_map = {col: col + '(w)' for col in rename_cols}
-    return nlp_df.rename(columns=rename_map)
-
 
 # Collect NLP data with above method.
 nlp_df = get_nlp_df(df)
 
 
 def df_filtering(df, prices, img_opts='all', nlp=True, **kwargs):
+    """Method that filters out main dataframe based
+    on image criteria and joins img/nlp dataframes.
+    Args:
+        df: pd.DataFrame
+        prices: (int, int) for a price range filter
+        img_opts: (str, ..., str) or str passed to
+            img_join()
+        nlp: bool controlling nlp_join()
+        **kwargs: Other parameters to pass to img_join()
+    Returns:
+        pd.DataFrame"""
     min_price, max_price = prices
     if img_opts:
         df = img_join(df, img_opts, **kwargs)
@@ -48,7 +46,6 @@ def df_filtering(df, prices, img_opts='all', nlp=True, **kwargs):
     return df
 
 
-# Filter out based on image filtering criteria
 if __name__ == '__main__':
-    df = df_filtering(df, (min_price, max_price))
+    df = df_filtering(df, price_range)
     df.to_csv(data_path)

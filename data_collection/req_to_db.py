@@ -1,8 +1,10 @@
 import psycopg2
 import psycopg2.extras
-from data_collection.misc import read_yaml
-from functools import wraps
 import os
+
+from functools import wraps
+
+from data_collection.misc import read_yaml
 
 
 folder = os.path.dirname(__file__)

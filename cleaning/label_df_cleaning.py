@@ -1,7 +1,8 @@
-from data_collection.misc import read_yaml
-from cleaning.image_labeling import features
 import os
 import pandas as pd
+
+from data_collection.misc import read_yaml
+from cleaning.image_labeling import features
 
 folder = os.path.dirname(__file__)
 config_file = os.path.join(folder, '..', 'conf.yaml')
@@ -11,10 +12,21 @@ label_path = img_path + 'labels.csv'
 
 
 def get_df_labels():
-    return pd.read_csv(label_path, index_col=0, dtype={'features': str}).reset_index(drop=True)
+    """Reads in label csv. This csv is generated
+    utilizing the image_labeling script."""
+    return pd.read_csv(label_path, index_col=0,
+                       dtype={'features': str}).reset_index(drop=True)
 
 
 def expand_feature_string(df):
+    """Method that converts label string column
+    into individual columns. E.g., '1001010'
+    would get cast into 7 new columns. The original
+    'features' col is removed.
+    Args:
+        df: pd.DataFrame
+    Returns:
+        pd.DataFrame"""
     for i, feature in enumerate(features):
         df[feature] = df.features.str[i].astype(int)
     del df["features"]
@@ -22,6 +34,15 @@ def expand_feature_string(df):
 
 
 def feature_group(df):
+    """Collects features for items by grouping
+    across their image(s). E.g., a single item
+    with two images having labels '1000100'
+    and '0100000' would have an overall feature
+    set of '1100100'.
+    Args:
+        df: pd.DataFrame
+    Returns:
+        pd.DataFrame"""
     def trunc_img_name(text):
         return text[:text.find('full')]
 
@@ -32,6 +53,12 @@ def feature_group(df):
 
 
 def img_df_feature_prep(df):
+    """Calls the methods expand_feature_string()
+    and feature_group() in sequence.
+    Args:
+        df: pd.DataFrame
+    Returns:
+        pd.DataFrame"""
     df = expand_feature_string(df)
     df = feature_group(df)
     return df
@@ -52,6 +79,18 @@ def filter_irrelevant(df):
 
 
 def get_filtered_img_df(df, option=('all', )):
+    """Calls the relevant filters based on the
+    option(s) given. Options include 'all',
+    'cases', 'discs', and 'irr', as well as
+    combinations of themselves. 'cases' and 'discs'
+    filter out multiple case/disc scenarios, resp.,
+    while 'irr' filters out items without the proper
+    disc, case, or manual present in the images.
+    Args:
+        df: pd.DataFrame
+        option: (str, ..., str) or str
+    Returns:
+        pd.DataFrame"""
     if type(option) == str:
         option = (option, )
     option = tuple([opt for opt in option])
@@ -124,12 +163,24 @@ def image_label_filter_complement(options, verbose=False):
 
 
 def join_to_main_df(df, *args, **kwargs):
+    """Method that reads in label dataframe from csv
+    and joins it properly to the main dataframe. Note
+    that there is some complexity in this step to avoid
+    labeling absence of images the same as a feature not
+    being present in an image.
+    Args:
+        df: pd.DataFrame
+        *args, **kwargs: to be passed to image_label_filter
+        and image_label_filter_complement
+    Returns:
+        pd.DataFrame"""
     df_labels = image_label_filter(*args)
     complement = image_label_filter_complement(*args, **kwargs)
     df_filtered = df[~df.id.isin(complement.item)]
     df_labels = df_labels.rename(columns={'item': 'id'})
     df_labels['id'] = df_labels['id'].astype('int64')
     return df_filtered.merge(df_labels, how='left', on='id')
+
 
 if __name__ == '__main__':
     df = image_label_filter(('all',), verbose=True)

@@ -1,19 +1,20 @@
-from bs4 import BeautifulSoup
-from bs4.element import Tag
-import requests
+import operator
+import os
+import re
+from dataclasses import dataclass
 from html.parser import HTMLParser
 from itertools import chain
-from dataclasses import dataclass
-from urllib.request import urlretrieve
 from urllib.error import HTTPError
-import pandas as pd
+from urllib.request import urlretrieve
+
 import numpy as np
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+from bs4.element import Tag
+
 from data_collection.misc import read_yaml, return_on_fail
 from data_collection.proxy_request import proxy_get, proxy_retrieve
-import operator
-import re
-import os
-
 
 folder = os.path.dirname(__file__)
 config_file = os.path.join(folder, '../conf.yaml')
