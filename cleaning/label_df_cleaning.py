@@ -99,7 +99,7 @@ def get_filtered_img_df(df, option=('all', )):
     if 'cases' or 'all' in option:
         df = filter_multi_cases(df)
     if 'discs' or 'all' in option:
-        df = filter_multi_cases(df)
+        df = filter_multi_discs(df)
     if 'irr' or 'all' in option:
         df = filter_irrelevant(df)
     return df
