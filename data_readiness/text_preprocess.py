@@ -13,7 +13,7 @@ nltk.download('wordnet')
 
 
 def nlp_preprocess(text_df, verbose=False):
-    """Method performing a common Bag-of-Words cleaning routine.
+    """Method performing a common Bag-of-Words data_readiness routine.
     All steps taken here include removing punctuation, removing
     stop words, lemmatizing, and a check to see if 'super smash
     bros melee' is in the string. The last of these could likely

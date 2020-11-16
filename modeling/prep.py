@@ -14,12 +14,12 @@ data_path = csv_path + 'train.csv'
 def read_data(data_path=data_path):
     """Method that reads in csv data at path determined in config.yaml.
     If no file is present, will throw an error. Need to run main.py
-    in cleaning folder to make csv."""
+    in data_readiness folder to make csv."""
     try:
         df = pd.read_csv(data_path, index_col=0)
     except FileNotFoundError:
         print("""No data file detected! 
-        Try running the main script in "cleaning""""")
+        Try running the main script in "data_readiness""""")
         exit(1)
     return df
 

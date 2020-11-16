@@ -1,8 +1,8 @@
 import os
 
-from cleaning.read_db import get_dfs
-from cleaning.label_df_cleaning import join_to_main_df as img_join
-from cleaning.text_preprocess import nlp_join, get_nlp_df
+from data_readiness.read_db import get_dfs
+from data_readiness.label_df_cleaning import join_to_main_df as img_join
+from data_readiness.text_preprocess import nlp_join, get_nlp_df
 from data_collection.misc import read_yaml
 
 folder = os.path.dirname(__file__)

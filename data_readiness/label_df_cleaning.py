@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 from data_collection.misc import read_yaml
-from cleaning.image_labeling import features
+from data_readiness.image_labeling import features
 
 folder = os.path.dirname(__file__)
 config_file = os.path.join(folder, '..', 'conf.yaml')
@@ -124,7 +124,7 @@ def filter_img_df_complement(img_df, options):
 
 
 def image_label_filter(options, verbose=False):
-    """Useful function to call full cleaning process after initial read in
+    """Useful function to call full data_readiness process after initial read in
     Args:
         options: (str,)
         Should be the same as options for filter_img_df
@@ -143,7 +143,7 @@ def image_label_filter(options, verbose=False):
 
 
 def image_label_filter_complement(options, verbose=False):
-    """Useful function to call full cleaning process after initial read in
+    """Useful function to call full data_readiness process after initial read in
     Args:
         options: (str,)
         Should be the same as options for filter_img_df
