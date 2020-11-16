@@ -1,7 +1,7 @@
 # ebuy (for lack of a better name)
 ## Introduction
 An independent project to determine driving factors in Ebay selling prices for a personal favorite game of mine: "Super Smash Bros. Melee, 2001."  
-The motivation here is to build a full-fledged, end-to-end Data Science project. This includes the data collection process, proper data storage, data exploration/visualization, data wrangling, and a predictive model. Beyond this, Git version control and more standard software developer practices will be used in my pursuit to not be another hacky data monkey who can kind of code.
+The motivation here is to build a full-fledged, end-to-end Data Science project. This includes the data collection process, proper data storage, data exploration/visualization, data wrangling, and an informative model. Beyond this, Git version control and more standard software developer practices will be used in my pursuit to not be another hacky data monkey who can kind of code.
 ## 1. Data Collection
 Aspiring data scientists and ML-practitioners get much of their training from sources like Kaggle. While this is a great resource, it is typically not indicative of real world data. Data from the world is ugly, brutish, and fragmented. To simulate this as best as possible, we go straight to the horse's mouth.
 
@@ -45,5 +45,24 @@ We'll clean up the text and make it more uniform:
 With all the text cleaned up, we then focus in on the words that show up enough to be worth calling  a feature, but not so frequently that it doesn't tell us anything about the listing. The specific criterion I selected was words, specifically 2-gram word combinations, with a **document frequency** in the range [0.02, 0.65]. This produced approximately 250 unique word features, which were then filled with counts of each word on a per-listing basis.
 
 ## 4. Data Visualization
+Before any sort of modeling occurs, it is necessary to become more acquainted with the data at hand. Relevant visuals such as response (selling price) distribution, how response varies with particular features, and checks for multicollinearity are all captured in one, clean dashboard utilizing Streamlit. The more and more I use Streamlit, the more fond of it I become. See below for a sample screenshot.
+
+ ![streamlit_sample.png](readme_images/streamlit_sample.png)
+ 
+ Above, you see the response distribution in a simple matplotlib style. Had the dashboard been the main focus of this project, a more visually appealing package like seaborn or plotly could have been used, but since I'm only interested in a few basic exploratory questions, it's fine as is. A particularly useful feature of Streamlit, however, is it's ability to incorporate filters. For instance, above I am able to tie in an image-based filter that catches most of the non-"Super Smash Bros. Melee" items. Useful!
 ## 5. Final Data Prep
+There are still a few more tidying steps required before we can get to the models.
+
+First, we filter out items that have images that meet either of the below conditions.
+* None of the images contain the correct case, correct disc, or correct manual.
+* Any of the images contain multiple discs or multiple cases.
+
+This helps ensure our dataset consists only of the specific item we want. Otherwise there will be added variance to the selling price for features beyond the scope of our initial question.
+
+Second, we join in both the NLP Bag-of-Words-like features and the image features  to the main dataset. A few left-joins here does the trick.
+
+Lastly, we need to account for missing values. As with all real world data, there were missing values galore. Each column was handled on a case-by-case basis. Some columns made the most sense for a simple mean or median imputation, some had such scarce NaNs that it was appropriate to drop a few rows, while other times it made sense to create the new category of "Missing". See modeling/data_handling_notes.txt for the details.
 ## 6. Modeling
+It is worth restating the goal of this project. It is not to produce the best predictive model for new items. The goal is to determine which factors within a listing drive its selling price. This means that we must have some sense of interpretability to go alongside the model. That being said, we must bid farewell to any hopes of Neural Nets (we don't have nearly enough data for this anyways) or Random Forests.
+
+So what are we left with as options? Moving from least interpretable to most, a selection of options includes Support Vector Regression, Decision Trees (Gradient Boosting is an option depending on *how* interpretable we want to get), or something more vanilla like a penalized linear regression.
