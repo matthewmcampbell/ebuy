@@ -1,4 +1,5 @@
 # Ignore these files/paths
 .idea/
 __pycache__/
+venv/
 secrets.yaml
