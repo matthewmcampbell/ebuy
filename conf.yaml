@@ -6,6 +6,5 @@
  dbname: 'ebuy'
  user: 'postgres'
  host: 'localhost'
- # NOT STANDARD PORT, typically you'll want 5432
- port: '5433'
+ port: '5432'
  secrets: 'secrets.yaml'
