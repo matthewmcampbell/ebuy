@@ -22,7 +22,7 @@ All of this data is then fed into a local PostgreSQL database. This is done in a
 After all was said and done, I started analyzing data with approximately 1500 listings. This is a **small** dataset. Terribly small. However, this particular item does not sell that frequently, so at any given time there are only approximately 600 unique listings (already sold, mind you). After about 4 months of data collection, I began analyzing. I kept in mind that the root of my future problems would come from the size of the dataset.
 
 ## 2. Image Handling
-The images. Oh, the images. There were approximately 6000 images to go alongside the PostgreSQL data. The images tell a lot about the item listed. For instance, they can tell you if the item includes all the expected components, (Game case, disc, manual). They can tell you if the listing isn't even the item you are after, thus providing a powerful filter before modeling. However, 6000 is far too small to get anything meaningful out of an unsupervised learning method to be helpful, and the features to be extracted are too helpful to be ignored.
+The images. Oh, the images. There were approximately 6000 images to go alongside the PostgreSQL data. The images tell a lot about the item listed. For instance, they can tell you if the item includes all the expected components, (Game case, disc, manual). They can tell you if the listing isn't even the item you are after, thus providing a powerful filter before modeling. However, 6000 is far too small to get anything meaningful out of an unsupervised learning method, and the features to be extracted are too helpful to be ignored.
 
 So we resort to the only option. Manual labeling. I recommend never doing this if you want to retain sanity.
 
@@ -42,7 +42,7 @@ We'll clean up the text and make it more uniform:
 2. Remove stop words like 'a' or 'that'
 3. Lemmatize each word: 'ran' -> 'run'
 
-With all the text cleaned up, we then focus in on the words that show up enough to be worth calling  a feature, but not so frequently that it doesn't tell us anything about the listing. The specific criterion I selected was words, specifically 2-gram word combinations, with a **document frequency** in the range [0.02, 0.65]. This produced approximately 250 unique word features, which were then filled with counts of each word on a per-listing basis.
+With all the text cleaned up, we then focus in on the words that show up enough to be worth calling  a feature, but not so frequently that it doesn't tell us anything about the listing. The specific criterion I selected was words, specifically 2-gram word combinations, with a **document frequency** in the range [0.02, 0.65]. This produced approximately 250 unique word features, which were then filled with counts (divided by document frequency for tf-idf) of each word on a per-listing basis.
 
 ## 4. Data Visualization
 Before any sort of modeling occurs, it is necessary to become more acquainted with the data at hand. Relevant visuals such as response (selling price) distribution, how response varies with particular features, and checks for multicollinearity are all captured in one, clean dashboard utilizing Streamlit. The more and more I use Streamlit, the more fond of it I become. See below for a sample screenshot.
@@ -66,3 +66,55 @@ Lastly, we need to account for missing values. As with all real world data, ther
 It is worth restating the goal of this project. It is not to produce the best predictive model for new items. The goal is to determine which factors within a listing drive its selling price. This means that we must have some sense of interpretability to go alongside the model. That being said, we must bid farewell to any hopes of Neural Nets (we don't have nearly enough data for this anyways) or Random Forests.
 
 So what are we left with as options? Moving from least interpretable to most, a selection of options includes Support Vector Regression, Decision Trees (Gradient Boosting is an option depending on *how* interpretable we want to get), or something more vanilla like a penalized linear regression.
+
+After some experimentation, it became clear that the performance of Support Vector Regression and Decision Trees didn't offer enough of a boost in performance. Therefore, I moved forward with fitting a linear regression with Elastic Net penalty to the data.
+
+5-fold cross validation on the (normalized) data with a hyper-parameter search showed that only the L1 portion of the penalty was improving validation errors, so we end up with a simple Lasso penalty instead using alpha = 0.225.
+
+From the Lasso regression coefficients, we can answer the question of "which factors drive price". The largest, positive coefficients were linked to the features: 
+* Condition is 'Like New' (ideal)
+* Image Features indicating that the Case and Manual were included
+* The keywords ['gamecube 2001', 'tested', 'complete', 'excellent', 'item'] were included in the description.
+
+Intuitively, these features make sense as being the key drivers in the selling price: people are more confident in buying something that is **complete** and in **ideal condition**.
+
+A similar analysis shows that the key factors driving the price **down** include:
+* Condition is 'Acceptable' (the worst condition available)
+* Condition is 'Good' (one tier above 'Acceptable')
+* The keywords ['not', 'has scratch', 'need', 'no', 'disk', 'well'] are included in the item description.
+
+Most of these factors are intuitive also: they show that something about the item is lacking. (The keyword of 'well' being negative is puzzling, however).
+
+##7. Additional Modeling Effort
+Having gone through the struggle of webscraping and building a full dataset, I wanted to continue modeling beyond the initial question. Now, I wanted to see how well, if at all, could I model the predicted selling price.
+
+My initial attempts at modeling (SVR, Regression Trees, Lasso) showed modest improvements on the baseline Root Mean Squared Error (RMSE).
+* Baseline RMSE: 9.934
+* SVR: 8.902
+* Regression Tree: 8.791
+* Lasso: 8.884
+
+The minor differences in the modeling errors led me to accepting the Lasso (as it was easily interpreted for the intent of this project). However, I believed that regression trees were still likely to be a good answer for lowering prediction errors.
+
+A big problem at hand was that most of the features within the model were *categorical*. While trees can handle categorical variables in a one-hot-encoding, the model still tends to suffer in performance due to their existence.
+
+After a bit of research, [CatBoost](https://catboost.ai/) rang true as the best developed Gradient Boosting Tree implementation that would work well with this dataset. The largest benefits included easy integration with Python as well as ready handling of categorical features.
+
+With some experimenting and tweaking, the CatBoostRegressor proved better than the other models:
+*CatBoostRegressor RMSE (averaged over 5-folds): 8.786
+
+There is more tweaking and improvement that could be done in the future. Next steps would include exploring PCA dimensionality reduction prior to model fitting to see if this improves test error. However, I am likely ending this exploratory project with these results. See the ending remarks below.
+
+##8. Ending Thoughts
+Overall, I gained a good chunk of data science wisdom throughout this process. I set out to collect raw data, build out a functioning data pipeline that fed into a proper database, and build a model on top of it all to assess what really drives Super Smash Bros. selling prices.
+
+Though I hit my mark in answering the question, there are a couple of fundamental lessons that I have taken away from this:
+1. Datasets that have already been built have **tremendous** value. It sucks having to build one out yourself.
+2. Quality data is harder to obtain than you'd imagine.
+3. At the end of the day, data quality and dataset size will drive your model's performance more than fine-tuning ever will.
+
+The final point above is the real reason I have to stop the modeling efforts on this project: I chose an Ebay item that just doesn't see enough data to be modeled in a reasonable amount of time.
+On average, approximately 100 new Super Smash Bros. listings ended up being sold. The dataset, therefore, would not grow much over time.
+
+Still, this project served as a good challenge for me to test my wits on a small dataset. I learned a large amount about image and language feature extraction, tools that will prove
+invaluable in the future.    

@@ -6,7 +6,7 @@ import pandas as pd
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem import WordNetLemmatizer
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 nltk.download('stopwords')
 nltk.download('wordnet')
@@ -52,7 +52,7 @@ def nlp_preprocess(text_df, verbose=False):
     text_df = text_df.apply(word_lemmatizer)
     text_df = text_df.apply(remove_stops)
     text = [" ".join(x) for x in text_df]
-    vectorizer = CountVectorizer(min_df=0.02, max_df=0.65, ngram_range=(1, 2))
+    vectorizer = TfidfVectorizer(min_df=0.02, max_df=0.65, ngram_range=(1, 2))
     X = vectorizer.fit_transform(text)
     if verbose:
         print("NLP BoW Features:\n")
