@@ -85,7 +85,8 @@ A similar analysis shows that the key factors driving the price **down** include
 
 Most of these factors are intuitive also: they show that something about the item is lacking. (The keyword of 'well' being negative is puzzling, however).
 
-##7. Additional Modeling Effort
+## 7. Additional Modeling Effort
+
 Having gone through the struggle of webscraping and building a full dataset, I wanted to continue modeling beyond the initial question. Now, I wanted to see how well, if at all, could I model the predicted selling price.
 
 My initial attempts at modeling (SVR, Regression Trees, Lasso) showed modest improvements on the baseline Root Mean Squared Error (RMSE).
@@ -105,7 +106,8 @@ With some experimenting and tweaking, the CatBoostRegressor proved better than t
 
 There is more tweaking and improvement that could be done in the future. Next steps would include exploring PCA dimensionality reduction prior to model fitting to see if this improves test error. However, I am likely ending this exploratory project with these results. See the ending remarks below.
 
-##8. Ending Thoughts
+## 8. Ending Thoughts
+
 Overall, I gained a good chunk of data science wisdom throughout this process. I set out to collect raw data, build out a functioning data pipeline that fed into a proper database, and build a model on top of it all to assess what really drives Super Smash Bros. selling prices.
 
 Though I hit my mark in answering the question, there are a couple of fundamental lessons that I have taken away from this:
