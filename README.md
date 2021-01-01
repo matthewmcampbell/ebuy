@@ -90,6 +90,7 @@ Most of these factors are intuitive also: they show that something about the ite
 Having gone through the struggle of webscraping and building a full dataset, I wanted to continue modeling beyond the initial question. Now, I wanted to see how well, if at all, could I model the predicted selling price.
 
 My initial attempts at modeling (SVR, Regression Trees, Lasso) showed modest improvements on the baseline Root Mean Squared Error (RMSE).
+
 * Baseline RMSE: 9.934
 * SVR: 8.902
 * Regression Tree: 8.791
@@ -102,7 +103,8 @@ A big problem at hand was that most of the features within the model were *categ
 After a bit of research, [CatBoost](https://catboost.ai/) rang true as the best developed Gradient Boosting Tree implementation that would work well with this dataset. The largest benefits included easy integration with Python as well as ready handling of categorical features.
 
 With some experimenting and tweaking, the CatBoostRegressor proved better than the other models:
-*CatBoostRegressor RMSE (averaged over 5-folds): 8.786
+
+* CatBoostRegressor RMSE (averaged over 5-folds): 8.786
 
 There is more tweaking and improvement that could be done in the future. Next steps would include exploring PCA dimensionality reduction prior to model fitting to see if this improves test error. However, I am likely ending this exploratory project with these results. See the ending remarks below.
 
