@@ -57,7 +57,7 @@ Pillow==7.2.0
 plotly==4.14.1
 prometheus-client==0.8.0
 prompt-toolkit==3.0.5
-protobuf==3.12.4
+protobuf==3.18.3
 psycopg2-binary==2.8.6
 ptyprocess==0.6.0
 pyarrow==1.0.0
